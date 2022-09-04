@@ -6,13 +6,7 @@ type InvalidChar = Char
 -- Translate all the characters in the string, and then combine the ``Either``s
 -- into a single ``Either``.
 toRNA :: String -> Either Char String
-toRNA s = combine $ map translate s
-
--- Basically a clone of ``Control.Monad.sequence``.
-combine :: [Either a b] -> Either a [b]
-combine []             = Right []
-combine (Left c : _)   = Left c
-combine (Right c : cs) = either Left (\xs -> Right (c : xs)) (combine cs)
+toRNA s = mapM translate s
 
 -- Validate and lift a character.
 translate :: Char -> Either InvalidChar RNAChar
