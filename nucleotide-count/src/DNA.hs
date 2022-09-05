@@ -1,8 +1,9 @@
+{-# LANGUAGE TupleSections #-}
+
 module DNA (nucleotideCounts, Nucleotide(..)) where
 
-import Data.Map (Map)
+import Data.Map (Map, fromListWith)
 
-type DNAChar = Char
 type Error = String
 
 -- I have always struggled with how inductive type definitions work
@@ -17,13 +18,13 @@ type Error = String
 -- anywhere else.
 data Nucleotide = A | C | G | T deriving (Eq, Ord, Show)
 
-nucleotideCounts :: String -> Either String (Map Nucleotide Int)
-nucleotideCounts xs = mapA <constructMap> (mapA translate xs)
+nucleotideCounts :: String -> Either Error (Map Nucleotide Int)
+nucleotideCounts xs = fromListWith (+) . map (, 1) <$> mapM translate xs
 
 -- Validate and lift a character.
 translate :: Char -> Either Error Nucleotide
-translate 'C' = Right Nucleotide.C
-translate 'G' = Right Nucleotide.G
-translate 'T' = Right Nucleotide.T
-translate 'A' = Right Nucleotide.A
-translate x   = Left "error"
+translate 'C' = Right C
+translate 'G' = Right G
+translate 'T' = Right T
+translate 'A' = Right A
+translate _   = Left "error"
