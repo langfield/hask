@@ -1,13 +1,10 @@
 module SumOfMultiples (sumOfMultiples) where
 
-import Debug.Trace (trace)
+import qualified Data.Set as Set
 
 sumOfMultiples :: [Integer] -> Integer -> Integer
-sumOfMultiples factors limit = sum $ trace ("Combined: " ++ (show $ combineMultiples factors limit)) (combineMultiples factors limit)
+sumOfMultiples factors limit = sum $ foldr Set.union Set.empty $ map (multiples limit) factors
 
-combineMultiples :: [Integer] -> Integer -> [Integer]
-combineMultiples factors limit = concat $ map (multiples limit) factors
-
-multiples :: Integer -> Integer -> [Integer]
-multiples limit factor = trace ("Multiples of " ++ (show factor) ++ " up to " ++ (show limit) ++ ": " ++ (show [factor * i | i <- [1..ub]])) [factor * i | i <- [1..(ub - 1)]]
-  where ub = div limit factor
+multiples :: Integer -> Integer -> Set.Set Integer
+multiples _ 0 = Set.fromList [0]
+multiples limit factor = Set.fromList [0, factor .. limit - 1]

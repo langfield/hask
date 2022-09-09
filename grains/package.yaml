@@ -1,12 +1,11 @@
-name: sum-of-multiples
-version: 1.5.0.10
+name: grains
+version: 1.2.0.6
 
 dependencies:
   - base
-  - containers
 
 library:
-  exposed-modules: SumOfMultiples
+  exposed-modules: Grains
   source-dirs: src
   ghc-options: -Wall
   # dependencies:
@@ -18,5 +17,5 @@ tests:
     main: Tests.hs
     source-dirs: test
     dependencies:
-      - sum-of-multiples
+      - grains
       - hspec
