@@ -3,9 +3,12 @@ module Grains (square, total) where
 square :: Integer -> Maybe Integer
 square n
   | n <= 0 = Nothing
-  | otherwise = 2 ^ n
+  | n > 64 = Nothing
+  | otherwise = Just (2 ^ (n - 1))
 
--- How can we ever get back to ``Integer`` from ``Maybe Integer`` without
--- panicking?
 total :: Integer
-total = sum $ fmap square [1..64]
+total =
+  case result of
+    Just xs -> sum xs
+    Nothing -> 0
+  where result = sequence $ map square [1..64]
