@@ -1,10 +1,10 @@
 module SumOfMultiples (sumOfMultiples) where
 
-import qualified Data.Set as Set
+import Data.Set (Set, fromList, unions, singleton)
 
 sumOfMultiples :: [Integer] -> Integer -> Integer
-sumOfMultiples factors limit = sum $ foldr Set.union Set.empty $ map (multiples limit) factors
+sumOfMultiples factors limit = sum $ unions $ map (multiples limit) factors
 
-multiples :: Integer -> Integer -> Set.Set Integer
-multiples _ 0 = Set.fromList [0]
-multiples limit factor = Set.fromList [0, factor .. limit - 1]
+multiples :: Integer -> Integer -> Set Integer
+multiples _ 0 = singleton 0
+multiples limit factor = fromList [0, factor .. limit - 1]
