@@ -4,31 +4,32 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           acronym
-version:        1.7.0.11
+name:           anagram
+version:        1.4.0.8
 build-type:     Simple
 
 library
   exposed-modules:
-      Acronym
+      Anagram
   other-modules:
-      Paths_acronym
+      Paths_anagram
   hs-source-dirs:
       src
-  ghc-options: -Wall -fwrite-ide-info -hiedir=.hie
+  ghc-options: -Wall
   build-depends:
       base
+    , containers
   default-language: Haskell2010
 
 test-suite test
   type: exitcode-stdio-1.0
   main-is: Tests.hs
   other-modules:
-      Paths_acronym
+      Paths_anagram
   hs-source-dirs:
       test
   build-depends:
-      acronym
+      anagram
     , base
     , hspec
   default-language: Haskell2010

@@ -1,16 +1,15 @@
-name: acronym
-version: 1.7.0.11
+name: perfect-numbers
+version: 1.1.0.4
 
 dependencies:
   - base
 
 library:
-  exposed-modules: Acronym
+  exposed-modules: PerfectNumbers
   source-dirs: src
   ghc-options: -Wall
-               -fwrite-ide-info
-               -hiedir=.hie
-  # dependencies:
+  dependencies:
+    - containers
   # - foo       # List here the packages you
   # - bar       # want to use in your solution.
 
@@ -19,5 +18,5 @@ tests:
     main: Tests.hs
     source-dirs: test
     dependencies:
-      - acronym
+      - perfect-numbers
       - hspec

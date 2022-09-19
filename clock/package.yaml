@@ -1,15 +1,13 @@
-name: acronym
-version: 1.7.0.11
+name: exercism-clock
+version: 2.4.0.10
 
 dependencies:
   - base
 
 library:
-  exposed-modules: Acronym
+  exposed-modules: Clock
   source-dirs: src
   ghc-options: -Wall
-               -fwrite-ide-info
-               -hiedir=.hie
   # dependencies:
   # - foo       # List here the packages you
   # - bar       # want to use in your solution.
@@ -19,5 +17,5 @@ tests:
     main: Tests.hs
     source-dirs: test
     dependencies:
-      - acronym
+      - exercism-clock
       - hspec
