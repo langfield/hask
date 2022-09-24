@@ -1,17 +1,14 @@
-name: acronym
-version: 1.7.0.11
+name: luhn
+version: 1.7.0.7
 
 dependencies:
   - base
 
 library:
-  exposed-modules: Acronym
+  exposed-modules: Luhn
   source-dirs: src
   ghc-options: -Wall
-               -fwrite-ide-info
-               -hiedir=.hie
-  dependencies:
-    - text
+  # dependencies:
   # - foo       # List here the packages you
   # - bar       # want to use in your solution.
 
@@ -20,5 +17,5 @@ tests:
     main: Tests.hs
     source-dirs: test
     dependencies:
-      - acronym
+      - luhn
       - hspec

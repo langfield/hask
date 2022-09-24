@@ -2,17 +2,18 @@ module Acronym
   ( abbreviate
   ) where
 
-import Data.Char (isUpper, toUpper)
+import Data.Char (isLower, isUpper, toUpper)
+import Data.Text as T
 
 -- I figured I'd do this with ``String`` first, and then write one with ``Data.Text``.
-abbreviate :: String -> String
-abbreviate = concatMap abbreviateToken . words . normalize
+abbreviate :: Text -> Text
+abbreviate = T.concat . Prelude.map abbreviateToken . T.words . normalize
   where
-    normalize = map delimsToSpaces . removeBadPunc
+    normalize = T.map delimsToSpaces . removeBadPunc :: Text -> Text
 
 -- Remove superfluous punctuation from a string.
-removeBadPunc :: String -> String
-removeBadPunc = filter (not . isBadPunc)
+removeBadPunc :: Text -> Text
+removeBadPunc = T.filter (not . isBadPunc)
   where isBadPunc c = c `elem` ['\'', '_']
 
 -- Convert delimiters to spaces.
@@ -40,10 +41,9 @@ delimsToSpaces c = if c `elem` ['-', ','] then ' ' else c
 --
 
 -- Abbreviate a single token, converting result to uppercase.
-abbreviateToken :: String -> [Char]
-abbreviateToken [] = []
-abbreviateToken (c : cs)
-  | allUpper (c : cs) || allLower (c : cs) = [toUpper c]
-  | otherwise = filter isUpper (c : cs)
-  where allUpper = all isUpper
-        allLower = not . any isUpper
+abbreviateToken :: Text -> Text
+abbreviateToken s
+  | T.null s = T.empty
+  | T.all isUpper s || T.all isLower s = T.singleton $ Data.Char.toUpper c
+  | otherwise = T.filter isUpper s
+  where c = T.head s

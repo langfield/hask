@@ -10,11 +10,12 @@ data Clock = Clock
   } deriving Eq
 
 fromHourMin :: Int -> Int -> Clock
-fromHourMin hour minute = Clock (mod hour 24) (mod minute 60)
-  where carry = minute / 60
+fromHourMin hour minute = Clock (mod (hour + carry) 24) (mod minute 60)
+  where carry = div minute 60
 
 toString :: Clock -> String
-toString clock = printf "%02d" (cHour clock) ++ ":" ++ (printf "%02d" $ cMin clock)
+toString clock = printf "%02d" (cHour clock) ++ ":" ++ printf "%02d" (cMin clock)
 
 addDelta :: Int -> Int -> Clock -> Clock
-addDelta hour minute clock = Clock (mod (cHour clock + hour) 24) (mod (cMin clock + minute) 60)
+addDelta hour minute clock = Clock (mod (cHour clock + hour + carry) 24) (mod (cMin clock + minute) 60)
+  where carry = div (cMin clock + minute) 60

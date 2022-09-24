@@ -1,17 +1,14 @@
-name: acronym
-version: 1.7.0.11
+name: crypto-square
+version: 3.2.0.6
 
 dependencies:
   - base
 
 library:
-  exposed-modules: Acronym
+  exposed-modules: CryptoSquare
   source-dirs: src
   ghc-options: -Wall
-               -fwrite-ide-info
-               -hiedir=.hie
-  dependencies:
-    - text
+  # dependencies:
   # - foo       # List here the packages you
   # - bar       # want to use in your solution.
 
@@ -20,5 +17,5 @@ tests:
     main: Tests.hs
     source-dirs: test
     dependencies:
-      - acronym
+      - crypto-square
       - hspec

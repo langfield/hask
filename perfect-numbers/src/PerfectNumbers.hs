@@ -10,15 +10,12 @@ factors x
   | otherwise = Just $ fromList $ filter (\y -> mod x y == 0) [1 .. x - 1]
 
 aliquot :: Int -> Maybe Int
-aliquot x = case factorSet of
-  Nothing -> Nothing
-  Just ys -> Just (sum ys)
-  where factorSet = factors x
+aliquot x = sum <$> x
 
 classify :: Int -> Maybe Classification
 classify x
   | x <= 0 = Nothing
-  | otherwise = case (aliquot x) of
+  | otherwise = case aliquot x of
     Nothing -> Nothing
     Just a -> classifyAliquotSum x a
 
