@@ -5,8 +5,8 @@ import Data.List (sort, group)
 
 anagramsFor :: String -> [String] -> [String]
 anagramsFor xs xss = map fst $ filter (isAnagram target) maps
-  where maps = map mapCounts xss
-        target = mapCounts xs
+  where actualCounts = map mapCounts xss
+        targetCounts = mapCounts xs
 
 isAnagram :: (String, [(Char, Int)]) -> (String, [(Char, Int)]) -> Bool
 isAnagram (t, tmap) (s, smap)
