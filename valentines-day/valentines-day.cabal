@@ -4,32 +4,31 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           anagram
-version:        1.4.0.8
+name:           valentines-day
+version:        1.0.0.0
 build-type:     Simple
 
 library
   exposed-modules:
-      Anagram
+      ValentinesDay
   other-modules:
-      Paths_anagram
+      Paths_valentines_day
   hs-source-dirs:
       src
-  ghc-options: -Wall -fwrite-ide-info -hiedir=.hie
+  ghc-options: -Wall
   build-depends:
       base
-    , containers
   default-language: Haskell2010
 
 test-suite test
   type: exitcode-stdio-1.0
   main-is: Tests.hs
   other-modules:
-      Paths_anagram
+      Paths_valentines_day
   hs-source-dirs:
       test
   build-depends:
-      anagram
-    , base
+      base
     , hspec
+    , valentines-day
   default-language: Haskell2010

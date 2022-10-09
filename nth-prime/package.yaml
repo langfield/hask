@@ -1,17 +1,14 @@
-name: anagram
-version: 1.4.0.8
+name: nth-prime
+version: 2.1.0.6
 
 dependencies:
   - base
 
 library:
-  exposed-modules: Anagram
+  exposed-modules: Prime
   source-dirs: src
   ghc-options: -Wall
-               -fwrite-ide-info
-               -hiedir=.hie
-  dependencies:
-    - containers
+  # dependencies:
   # - foo       # List here the packages you
   # - bar       # want to use in your solution.
 
@@ -20,5 +17,5 @@ tests:
     main: Tests.hs
     source-dirs: test
     dependencies:
-      - anagram
+      - nth-prime
       - hspec

@@ -4,32 +4,31 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           anagram
-version:        1.4.0.8
+name:           nth-prime
+version:        2.1.0.6
 build-type:     Simple
 
 library
   exposed-modules:
-      Anagram
+      Prime
   other-modules:
-      Paths_anagram
+      Paths_nth_prime
   hs-source-dirs:
       src
-  ghc-options: -Wall -fwrite-ide-info -hiedir=.hie
+  ghc-options: -Wall
   build-depends:
       base
-    , containers
   default-language: Haskell2010
 
 test-suite test
   type: exitcode-stdio-1.0
   main-is: Tests.hs
   other-modules:
-      Paths_anagram
+      Paths_nth_prime
   hs-source-dirs:
       test
   build-depends:
-      anagram
-    , base
+      base
     , hspec
+    , nth-prime
   default-language: Haskell2010

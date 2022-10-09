@@ -8,7 +8,8 @@ library:
   exposed-modules: CryptoSquare
   source-dirs: src
   ghc-options: -Wall
-  # dependencies:
+  dependencies:
+    - text
   # - foo       # List here the packages you
   # - bar       # want to use in your solution.
 

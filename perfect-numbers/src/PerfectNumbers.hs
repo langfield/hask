@@ -1,27 +1,21 @@
 module PerfectNumbers (classify, Classification(..)) where
 
-import Data.Set (Set, fromList)
+import Control.Monad
+import Data.Functor
 
 data Classification = Deficient | Perfect | Abundant deriving (Eq, Show)
 
-factors :: Int -> Maybe (Set Int)
-factors x 
-  | x <= 0 = Nothing
-  | otherwise = Just $ fromList $ filter (\y -> mod x y == 0) [1 .. x - 1]
-
-aliquot :: Int -> Maybe Int
-aliquot x = sum <$> x
-
+-- If n <= 0, return `Nothing`, else return the result of the case split. The
+-- case split takes the aliquot sum, explained below, and compares it to n,
+-- returning a classification.
+--
+-- The function `aliquotSum` first finds divisors by observing that a positive
+-- integer k < n is a divisor of n if and only if `n mod k == 0`. Then it sums
+-- those divisors.
 classify :: Int -> Maybe Classification
-classify x
-  | x <= 0 = Nothing
-  | otherwise = case aliquot x of
-    Nothing -> Nothing
-    Just a -> classifyAliquotSum x a
-
-classifyAliquotSum :: Int -> Int -> Maybe Classification
-classifyAliquotSum x a
-  | x <= 0 = Nothing
-  | a == x = Just Perfect
-  | a < x = Just Deficient
-  | otherwise = Just Abundant
+classify n = 
+  guard (n > 0) $> case compare aliquotSum n of
+    LT -> Deficient
+    EQ -> Perfect
+    GT -> Abundant
+  where aliquotSum = sum $ filter ((0 ==) . (n `mod`)) [1 .. n - 1]

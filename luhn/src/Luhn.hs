@@ -1,19 +1,20 @@
 module Luhn (isValid) where
 
-import Data.Char (isAlpha)
+import Data.Char (isDigit, digitToInt)
 
 isValid :: String -> Bool
-isValid s
-  | length s <= 1 = False
-  | all isDigit t = isLuhn t
-  | otherwise = False
-  where t = filter (\c -> c != ' ') s
-
+isValid s = length t > 1 && all isDigit t && isLuhn t
+  where t = filter (/= ' ') s
 
 isLuhn :: String -> Bool
-isLuhn t = 
+isLuhn t = total `mod` 10 == 0
+  where total = sum $ mapOnOdds (\n -> bound (2 * n)) $ reverse $ map digitToInt t
 
-doubleEveryOtherMod10 :: [Integer] -> [Integer]
-doubleEveryOtherMod10 [] = []
-doubleEveryOtherMod10 [x] = [x]
-doubleEveryOtherMod10 (x : s : xs) = x : 2 * s `mod` 10 : doubleEveryOtherMod10 xs
+-- Map `f` only on elements of `xs` with odd indices.
+mapOnOdds :: (a -> a) -> [a] -> [a]
+mapOnOdds f = zipWith ($) (cycle [id, f])
+
+bound :: Int -> Int
+bound n
+  | n > 9 = n - 9
+  | otherwise = n

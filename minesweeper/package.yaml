@@ -1,15 +1,13 @@
-name: anagram
-version: 1.4.0.8
+name: minesweeper
+version: 1.1.0.5
 
 dependencies:
   - base
 
 library:
-  exposed-modules: Anagram
+  exposed-modules: Minesweeper
   source-dirs: src
   ghc-options: -Wall
-               -fwrite-ide-info
-               -hiedir=.hie
   dependencies:
     - containers
   # - foo       # List here the packages you
@@ -20,5 +18,5 @@ tests:
     main: Tests.hs
     source-dirs: test
     dependencies:
-      - anagram
+      - minesweeper
       - hspec

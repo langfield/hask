@@ -1,19 +1,25 @@
+{-# LANGUAGE TupleSections #-}
 module Anagram (anagramsFor) where
 
-import Data.Char (toLower)
-import Data.List (sort, group)
+import Data.Map (Map, fromListWith)
+import Data.Char (toUpper)
 
+-- Return all case-insensitive anagrams for ``xs``, excluding case-insensitive
+-- exact matches.
 anagramsFor :: String -> [String] -> [String]
-anagramsFor xs xss = map fst $ filter (isAnagram target) maps
-  where actualCounts = map mapCounts xss
-        targetCounts = mapCounts xs
+anagramsFor = filter . isAnagram
 
-isAnagram :: (String, [(Char, Int)]) -> (String, [(Char, Int)]) -> Bool
-isAnagram (t, tmap) (s, smap)
-  | map toLower t == (map toLower s) = False
-  | otherwise = tmap == smap
+-- Check if ``s`` is a case-insensitive, distinct anagram of ``t``.
+isAnagram :: String -> String -> Bool
+isAnagram s t = (sCounts == tCounts) && not (equalCaseInsensitive s t)
+  where sCounts = count s
+        tCounts = count t
 
-mapCounts :: String -> (String, [(Char, Int)])
-mapCounts "" = ("", [])
-mapCounts s = (s, (map (\(x : xs) -> (x, length xs + 1)) . group . sort) low)
-  where low = map toLower s
+-- Check case-insensitive equality of strings.
+equalCaseInsensitive :: String -> String -> Bool
+equalCaseInsensitive s t = map toUpper s == map toUpper t
+
+-- Map case-insensitive characters to counts given a string, preferring
+-- uppercase letters as keys.
+count :: String -> Map Char Int
+count s = fromListWith (+) (map ((,1) . toUpper) s)
