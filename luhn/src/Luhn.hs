@@ -8,7 +8,7 @@ isValid s = length t > 1 && all isDigit t && isLuhn t
 
 isLuhn :: String -> Bool
 isLuhn t = total `mod` 10 == 0
-  where total = sum $ mapOnOdds (\n -> bound (2 * n)) $ reverse $ map digitToInt t
+  where total = sum $ mapOnOdds (bound . (*2)) $ reverse $ map digitToInt t
 
 -- Map `f` only on elements of `xs` with odd indices.
 mapOnOdds :: (a -> a) -> [a] -> [a]
