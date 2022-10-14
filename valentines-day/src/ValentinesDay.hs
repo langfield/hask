@@ -12,17 +12,10 @@ data Activity = BoardGame | Chill | Movie Genre | Restaurant Cuisine | Walk Int
 
 -- This looks more gross than just case splitting on `activity`, right?
 rateActivity :: Activity -> Approval
-rateActivity BoardGame = No
-rateActivity Chill = No
-rateActivity (Movie genre) =
-    case genre of
-      Romance -> Yes
-      _ -> No
-rateActivity (Restaurant cuisine) =
-    case cuisine of
-      Korean -> Yes
-      Turkish -> Maybe
+rateActivity (Movie Romance) = Yes
+rateActivity (Restaurant Korean) = Yes
+rateActivity (Restaurant Turkish) = Maybe
 rateActivity (Walk km)
   | km < 3 = Yes
   | 3 <= km && km <= 5 = Maybe
-  | otherwise = No
+rateActivity _ = No
