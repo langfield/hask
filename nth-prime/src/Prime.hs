@@ -1,26 +1,30 @@
 module Prime (nth) where
 
-import GHC.Float (int2Float)
+import Data.List ((\\))
+import Debug.Trace (trace)
+
+
+traceAs :: Show a => String -> a -> a
+traceAs desc x = trace (desc ++ ": " ++ show x) x
 
 
 nth :: Int -> Maybe Integer
 nth n
   | n <= 0 = Nothing
-  | otherwise = primes !! (n - 1)
-  where ub = upperBoundNthPrime n
-        primes = sievePrime ub [1..ub] 2
+  | n == 1 = Just 2
+  | n == 2 = Just 3
+  | otherwise = Just $ fromIntegral $ head $ reverse $ take n primes
+  where primes = sundaramSieve $ traceAs "UB"  $ upperBoundNthPrime n
         
 
-
-sievePrime :: Int -> [Int] -> Int -> [Int]
-sievePrime ub xs p
-  | p >= ub = xs
-  | otherwise = sievePrime ub ys q
-  where ys = filter (\x -> x `mod` p /= 0) xs
-        q = head $ dropWhile (<= p) ys
+-- Compute all primes <= k.
+sundaramSieve :: Int -> [Int]
+sundaramSieve k = map (\x -> 2 * x + 1) $ [1..k] \\ bads
+  where bads = filter ((<=) k) [i + j + 2 * i * j | j <- [1..k `div` 3], i <- [1..j]]
 
 
-upperBoundNthPrime :: Int -> Maybe Integer
-upperBoundNthPrime n
-  | n <= 0 = Nothing
-  | otherwise = Just $ ceiling $ (fromIntegral n) * (log (int2Float n) * log (log (int2Float n)))
+-- Get an upper bound for the nth prime.
+upperBoundNthPrime :: Int -> Int
+upperBoundNthPrime n = ceiling $ ((fromIntegral n) * loglogn * logn :: Double)
+  where loglogn = (log . log . fromIntegral) n
+        logn = (log . fromIntegral) n

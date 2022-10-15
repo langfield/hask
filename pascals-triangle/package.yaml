@@ -1,15 +1,14 @@
-name: nth-prime
-version: 2.1.0.6
+name: pascals-triangle
+version: 1.5.0.9
 
 dependencies:
   - base
 
 library:
-  exposed-modules: Prime
+  exposed-modules: Triangle
   source-dirs: src
   ghc-options: -Wall
-  dependencies:
-    - containers
+  # dependencies:
   # - foo       # List here the packages you
   # - bar       # want to use in your solution.
 
@@ -18,5 +17,5 @@ tests:
     main: Tests.hs
     source-dirs: test
     dependencies:
-      - nth-prime
+      - pascals-triangle
       - hspec
