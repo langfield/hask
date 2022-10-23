@@ -1,17 +1,14 @@
-name: minesweeper
-version: 1.1.0.5
+name: food-chain
+version: 0.1.0.3
 
 dependencies:
   - base
 
 library:
-  exposed-modules: Minesweeper
+  exposed-modules: FoodChain
   source-dirs: src
   ghc-options: -Wall
-  dependencies:
-    - containers
-    - array
-    - comfort-array
+  # dependencies:
   # - foo       # List here the packages you
   # - bar       # want to use in your solution.
 
@@ -20,5 +17,5 @@ tests:
     main: Tests.hs
     source-dirs: test
     dependencies:
-      - minesweeper
+      - food-chain
       - hspec

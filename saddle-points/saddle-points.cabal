@@ -4,34 +4,33 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           minesweeper
-version:        1.1.0.5
+name:           saddle-points
+version:        1.5.0.8
 build-type:     Simple
 
 library
   exposed-modules:
-      Minesweeper
+      Matrix
   other-modules:
-      Paths_minesweeper
+      Paths_saddle_points
   hs-source-dirs:
       src
   ghc-options: -Wall
   build-depends:
       array
     , base
-    , comfort-array
-    , containers
   default-language: Haskell2010
 
 test-suite test
   type: exitcode-stdio-1.0
   main-is: Tests.hs
   other-modules:
-      Paths_minesweeper
+      Paths_saddle_points
   hs-source-dirs:
       test
   build-depends:
-      base
+      array
+    , base
     , hspec
-    , minesweeper
+    , saddle-points
   default-language: Haskell2010

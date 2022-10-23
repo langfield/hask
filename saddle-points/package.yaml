@@ -1,17 +1,15 @@
-name: minesweeper
-version: 1.1.0.5
+name: saddle-points
+version: 1.5.0.8
 
 dependencies:
+  - array
   - base
 
 library:
-  exposed-modules: Minesweeper
+  exposed-modules: Matrix
   source-dirs: src
   ghc-options: -Wall
-  dependencies:
-    - containers
-    - array
-    - comfort-array
+  # dependencies:
   # - foo       # List here the packages you
   # - bar       # want to use in your solution.
 
@@ -20,5 +18,5 @@ tests:
     main: Tests.hs
     source-dirs: test
     dependencies:
-      - minesweeper
+      - saddle-points
       - hspec
