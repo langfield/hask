@@ -7,7 +7,6 @@ number xs = validate $ dropCountry $ filter isDigit xs
 
 -- Drop the country code if it exists.
 dropCountry :: String -> String
-dropCountry "" = ""
 dropCountry ('1' : xs) = xs
 dropCountry xs = xs
 
@@ -21,4 +20,4 @@ validate xs
     case xs of
       (_ : _ : _ : '0' : _) -> Nothing
       (_ : _ : _ : '1' : _) -> Nothing
-      xs -> Just xs
+      num -> Just num
