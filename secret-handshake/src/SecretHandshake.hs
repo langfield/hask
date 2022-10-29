@@ -12,3 +12,12 @@ handshake n = if sixteens == 1 then reverse ops else ops
               ++ (if twos == 1 then ["double blink"] else [])
               ++ (if fours == 1 then ["close your eyes"] else [])
               ++ (if eights == 1 then ["jump"] else [])
+
+
+bits :: Int -> [String] -> [String]
+bits _ [] = []
+bits k (x : xs)
+  | k `mod` 2 == 1 = x : rest
+  | otherwise = rest
+  where
+    rest = bits (k `div` 2) xs
