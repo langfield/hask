@@ -10,6 +10,8 @@ module BST
     , toList
     ) where
 
+import Data.List (foldl')
+
 data BST a = Empty
            | Node a (BST a) (BST a)
   deriving (Eq, Show)
@@ -31,7 +33,7 @@ empty = Empty
 
 -- Just keep inserting from left-to-right.
 fromList :: Ord a => [a] -> BST a
-fromList = foldl (flip insert) empty
+fromList = foldl' (flip insert) empty
 
 insert :: Ord a => a -> BST a -> BST a
 insert y Empty = singleton y
@@ -39,7 +41,7 @@ insert y (Node x l r)
   | y <= x = Node x (insert y l) r
   | otherwise = Node x l (insert y r)
 
-singleton :: a -> BST a
+singleton :: Ord a => a -> BST a
 singleton x = Node x Empty Empty
 
 -- Put the root in the middle of the list, I guess...
