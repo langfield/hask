@@ -1,19 +1,14 @@
-name: minesweeper
-version: 1.1.0.5
+name: isbn-verifier
+version: 2.7.0.9
 
 dependencies:
   - base
 
 library:
-  exposed-modules: Minesweeper
+  exposed-modules: IsbnVerifier
   source-dirs: src
-  ghc-options:
-    - -Wall
-    - -fwrite-ide-info
-    - -hiedir=.hie
-  dependencies:
-    - containers
-    - array
+  ghc-options: -Wall
+  # dependencies:
   # - foo       # List here the packages you
   # - bar       # want to use in your solution.
 
@@ -22,5 +17,5 @@ tests:
     main: Tests.hs
     source-dirs: test
     dependencies:
-      - minesweeper
+      - isbn-verifier
       - hspec

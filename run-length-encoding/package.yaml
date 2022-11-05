@@ -1,19 +1,14 @@
-name: minesweeper
+name: run-length-encoding
 version: 1.1.0.5
 
 dependencies:
   - base
 
 library:
-  exposed-modules: Minesweeper
+  exposed-modules: RunLength
   source-dirs: src
-  ghc-options:
-    - -Wall
-    - -fwrite-ide-info
-    - -hiedir=.hie
-  dependencies:
-    - containers
-    - array
+  ghc-options: -Wall
+  # dependencies:
   # - foo       # List here the packages you
   # - bar       # want to use in your solution.
 
@@ -22,5 +17,5 @@ tests:
     main: Tests.hs
     source-dirs: test
     dependencies:
-      - minesweeper
+      - run-length-encoding
       - hspec
