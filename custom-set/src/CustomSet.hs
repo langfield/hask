@@ -20,7 +20,8 @@ data Color = R | B deriving Show
 data Tree a = E | T Color (Tree a) a (Tree a) deriving (Show)
 
 delete :: a -> Tree a -> Tree a
-delete x set = error "You need to implement this function."
+delete _ E = E
+delete x (T color a y b) = E
 
 difference :: Tree a -> Tree a -> Tree a
 difference setA setB = error "You need to implement this function."
@@ -28,8 +29,9 @@ difference setA setB = error "You need to implement this function."
 empty :: Tree a
 empty = E
 
-fromList :: [a] -> Tree a
-fromList xs = error "You need to implement this function."
+fromList :: Ord a => [a] -> Tree a
+fromList [] = E
+fromList (x : xs) = insert x (fromList xs)
 
 insert :: Ord a => a -> Tree a -> Tree a
 insert x set = makeBlack $ ins x set
@@ -61,13 +63,15 @@ member x (T _ a y b)
   | otherwise = member x b
 
 null :: Tree a -> Bool
-null set = error "You need to implement this function."
+null E = True
+null _ = False
 
 size :: Tree a -> Int
-size set = error "You need to implement this function."
+size set = (length . toList) set
 
 toList :: Tree a -> [a]
-toList set = error "You need to implement this function."
+toList E = []
+toList (T color a x b) = x : (toList a ++ toList b)
 
 union :: Tree a -> Tree a -> Tree a
 union setA setB = error "You need to implement this function."
