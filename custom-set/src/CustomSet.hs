@@ -21,10 +21,10 @@ data Tree a = E | T Color (Tree a) a (Tree a) deriving (Show)
 
 delete :: a -> Tree a -> Tree a
 delete _ E = E
-delete x (T color a y b) = E
+delete x (T color a y b) = error "You need to implement this function."
 
 difference :: Tree a -> Tree a -> Tree a
-difference setA setB = error "You need to implement this function."
+difference setA setB = foldr (\b set -> delete b set) setA $ toList setB
 
 empty :: Tree a
 empty = E
@@ -46,14 +46,19 @@ insert x set = makeBlack $ ins x set
     makeBlack (T _ a y b) = T B a y b
     makeBlack set = set
 
-intersection :: Tree a -> Tree a -> Tree a
-intersection setA setB = error "You need to implement this function."
+intersection :: Ord a => Tree a -> Tree a -> Tree a
+intersection setA = fromList . filter (\b -> member b setA) . toList
 
-isDisjointFrom :: Tree a -> Tree a -> Bool
-isDisjointFrom setA setB = error "You need to implement this function."
+isDisjointFrom :: Ord a => Tree a -> Tree a -> Bool
+isDisjointFrom setA setB =
+  case intersection setA setB of
+    E -> True
+    _ -> False
 
-isSubsetOf :: Tree a -> Tree a -> Bool
-isSubsetOf setA setB = error "You need to implement this function."
+isSubsetOf :: Ord a => Tree a -> Tree a -> Bool
+isSubsetOf setA setB
+  | (size . intersection setA) setB == size setA = True
+  | otherwise = False
 
 member :: Ord a => a -> Tree a -> Bool
 member x E = False
@@ -73,8 +78,8 @@ toList :: Tree a -> [a]
 toList E = []
 toList (T color a x b) = x : (toList a ++ toList b)
 
-union :: Tree a -> Tree a -> Tree a
-union setA setB = error "You need to implement this function."
+union :: Ord a => Tree a -> Tree a -> Tree a
+union setA setB = fromList $ toList setA ++ toList setB
 
 balance :: Color -> Tree a -> a -> Tree a -> Tree a
 balance B (T R (T R a x b) y c) z d = T R (T B a x b) y (T B c z d)
