@@ -21,7 +21,26 @@ data Tree a = E | T Color (Tree a) a (Tree a) deriving (Show)
 
 delete :: a -> Tree a -> Tree a
 delete _ E = E
-delete x (T color a y b) = error "You need to implement this function."
+delete x t = makeBlack $ del x t
+  where
+    makeBlack (T _ a y b) = T B a y b
+    makeBlack E = E
+
+-- Delete with consecutive red nodes at the top which is rectified in `delete`.
+del :: (Ord a) => a -> Tree a -> Tree a
+del _ E = E
+del x t@(T _ a y b)
+  | x < y = delL x t
+  | x > y = delR x t
+  | otherwise = fuse l r
+ 
+-- Delete `x` from the left child of the second argument.
+delL :: Ord a => a -> Tree a -> Tree a
+delL x (T _ a@(T B _ _ _) y b) = balL $ T B (del x a) y b
+delL x (T _ a y b) = T R (del x a) y b
+
+balL :: Tree a -> Tree a
+balL (T B (T R a x b) y c) = T R (T B a x b) y c
 
 difference :: Tree a -> Tree a -> Tree a
 difference setA setB = foldr (\b set -> delete b set) setA $ toList setB
