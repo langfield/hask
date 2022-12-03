@@ -19,7 +19,7 @@ import Prelude hiding (null)
 data Color = R | B deriving Show
 data Tree a = E | T Color (Tree a) a (Tree a) deriving (Show)
 
-delete :: a -> Tree a -> Tree a
+delete :: Ord a => a -> Tree a -> Tree a
 delete _ E = E
 delete x t = makeBlack $ del x t
   where
@@ -32,9 +32,9 @@ del _ E = E
 del x t@(T _ a y b)
   | x < y = delL x t
   | x > y = delR x t
-  | otherwise = fuse l r
+  | otherwise = fuse a b
  
--- Delete `x` from the left child of the second argument.
+-- Delete `x` from the left child of a tree.
 delL :: Ord a => a -> Tree a -> Tree a
 delL x (T _ a@(T B _ _ _) y b) = balL $ T B (del x a) y b
 delL x (T _ a y b) = T R (del x a) y b
@@ -42,7 +42,17 @@ delL x (T _ a y b) = T R (del x a) y b
 balL :: Tree a -> Tree a
 balL (T B (T R a x b) y c) = T R (T B a x b) y c
 
-difference :: Tree a -> Tree a -> Tree a
+-- Delete `x` from the right child of a tree.
+delR :: Ord a => a -> Tree a -> Tree a
+delR x (T _ a y b@(T B _ _ _)) = balR $ T B a y (del x b)
+delR x (T _ a y b) = T R a y (del x b)
+
+balR :: Tree a -> Tree a
+balR (T B (T R a x b) y c) = T R (T B a x b) y c
+
+fuse = error ""
+
+difference :: Ord a => Tree a -> Tree a -> Tree a
 difference setA setB = foldr (\b set -> delete b set) setA $ toList setB
 
 empty :: Tree a
