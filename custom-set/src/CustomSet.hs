@@ -12,14 +12,26 @@ module CustomSet
   , size
   , toList
   , union
+  , Color (..)
+  , Tree (..)
   ) where
 
 import Prelude hiding (null)
+import Debug.Trace (trace)
 
-data Color = R | B deriving Show
-data Tree a = E | T Color (Tree a) a (Tree a) deriving (Show)
+traceAs :: Show a => String -> a -> a
+traceAs s x = trace (s ++ ": " ++ show x) x
 
-delete :: Ord a => a -> Tree a -> Tree a
+data Color = R | B deriving (Show, Eq)
+data Tree a = E | T Color (Tree a) a (Tree a) deriving Show
+
+instance (Show a, Ord a) => Eq (Tree a) where
+  (==) a b =
+    case (difference a b, difference b a) of
+      (E, E) -> True
+      (_, _) -> False
+
+delete :: (Show a, Ord a) => a -> Tree a -> Tree a
 delete _ E = E
 delete x t = makeBlack $ del x t
   where
@@ -27,20 +39,21 @@ delete x t = makeBlack $ del x t
     makeBlack E = E
 
 -- Delete with consecutive red nodes at the top which is rectified in `delete`.
-del :: (Ord a) => a -> Tree a -> Tree a
+del :: (Show a, Ord a) => a -> Tree a -> Tree a
 del _ E = E
 del x t@(T _ a y b)
   | x < y = delL x t
   | x > y = delR x t
   | otherwise = fuse a b
- 
+
 -- Delete `x` from the left child of a tree.
-delL :: Ord a => a -> Tree a -> Tree a
+delL :: (Show a, Ord a) => a -> Tree a -> Tree a
 -- If the left child is black, delete from it and make the tree black, then
 -- rebalance.
 delL x (T _ a@(T B _ _ _) y b) = balL $ T B (del x a) y b
 -- Otherwise, delete from it and make the tree red.
 delL x (T _ a y b) = T R (del x a) y b
+delL _ E = E
 
 -- Rebalance a black tree after we've deleted from a black left subtree.
 balL :: Tree a -> Tree a
@@ -49,12 +62,14 @@ balL (T B (T R a x b) y c) = T R (T B a x b) y c
 -- Otherwise, if the right subtree is black, make it red and balance.
 balL (T B a x (T B b y c)) = balance' (T B a x (T R b y c))
 -- Otherwise, if the right subtree is red, we go fucking mental.
-balL (T B a x (T R (T B b y c) z d@(T B e w f))) = T R (T B a x b) y (balance' (T B c z (T R e w f)))
+balL (T B a x (T R (T B b y c) z (T B e w f))) = T R (T B a x b) y (balance' (T B c z (T R e w f)))
+balL t = t
 
 -- Delete `x` from the right child of a tree.
-delR :: Ord a => a -> Tree a -> Tree a
+delR :: (Show a, Ord a) => a -> Tree a -> Tree a
 delR x (T _ a y b@(T B _ _ _)) = balR $ T B a y (del x b)
 delR x (T _ a y b) = T R a y (del x b)
+delR _ E = E
 
 -- Rebalance a black tree after we've deleted from a black right subtree.
 balR :: Tree a -> Tree a
@@ -64,6 +79,7 @@ balR (T B a x (T R b y c)) = (T R a x (T B b y c))
 balR (T B (T B a x b) y c) = balance' (T B (T R a x b) y c)
 -- Otherwise, if left subtree is red, go crazy.
 balR (T B (T R (T B a x b) y (T B c z d)) w e) = T R (balance' (T B (T R a x b) y c)) z (T B d w e)
+balR t = t
 
 -- When we actually find `x` in `del`, it is the root of some tree, and we must
 -- remove it and `fuse` its subtrees into a single replacement.
@@ -76,12 +92,14 @@ fuse (T R a x b) (T R c y d) =
   case fuse b c of
     (T R s' z' t') -> (T R (T R a x s') z' (T R t' y d))
     bc@(T B _ _ _) -> (T R a x (T R bc y d))
+    E -> E
 fuse (T B a x b) (T B c y d) =
   case fuse b c of
     (T R i' z' j') -> (T R (T B a x i') z' (T B j' y d))
     bc@(T B _ _ _) -> balL (T B a x (T B bc y d))
+    E -> (T R (T B a x d) y E)
 
-difference :: Ord a => Tree a -> Tree a -> Tree a
+difference :: (Show a, Ord a) => Tree a -> Tree a -> Tree a
 difference setA setB = foldr (\b set -> delete b set) setA $ toList setB
 
 empty :: Tree a
@@ -91,18 +109,20 @@ fromList :: Ord a => [a] -> Tree a
 fromList [] = E
 fromList (x : xs) = insert x (fromList xs)
 
+ins :: Ord a => a -> Tree a -> Tree a
+ins x (T color a y b)
+  | x < y = balance color (ins x a) y b
+  | x == y = T color a y b
+  | x > y = balance color a y (ins x b)
+ins x E = T R E x E
+ins _ t = t
+
 insert :: Ord a => a -> Tree a -> Tree a
-insert x set = makeBlack $ ins x set
+insert z set = makeBlack $ ins z set
   where 
-    ins :: Ord a => a -> Tree a -> Tree a
-    ins x E = T R (E :: Tree a) x (E :: Tree a)
-    ins x (T color a y b)
-      | x < y = balance color (ins x a) y b
-      | x == y = T color a y b
-      | x > y = balance color a y (ins x b)
     makeBlack :: Tree a -> Tree a
     makeBlack (T _ a y b) = T B a y b
-    makeBlack set = set
+    makeBlack t = t
 
 intersection :: Ord a => Tree a -> Tree a -> Tree a
 intersection setA = fromList . filter (\b -> member b setA) . toList
@@ -119,7 +139,7 @@ isSubsetOf setA setB
   | otherwise = False
 
 member :: Ord a => a -> Tree a -> Bool
-member x E = False
+member _ E = False
 member x (T _ a y b)
   | x < y = member x a
   | x == y = True
@@ -134,7 +154,7 @@ size set = (length . toList) set
 
 toList :: Tree a -> [a]
 toList E = []
-toList (T color a x b) = x : (toList a ++ toList b)
+toList (T _ a x b) = x : (toList a ++ toList b)
 
 union :: Ord a => Tree a -> Tree a -> Tree a
 union setA setB = fromList $ toList setA ++ toList setB
@@ -148,3 +168,4 @@ balance color a x b = T color a x b
 
 balance' :: Tree a -> Tree a
 balance' (T color a x b) = balance color a x b
+balance' E = E
