@@ -41,44 +41,52 @@ delete aa t = makeBlack $ del aa t
 -- Delete with consecutive red nodes at the top which is rectified in `delete`.
 del :: (Show a, Ord a) => a -> Tree a -> Tree a
 del _ E = E
-del x t@(TREE _ a y b)
+del x t@(TREE _ ta y tb)
   | x < y = delL x t
   | x > y = delR x t
-  | otherwise = fuse a b
+  | otherwise = fuse ta tb
 
 -- Delete `x` from the left child of a tree.
 delL :: (Show a, Ord a) => a -> Tree a -> Tree a
 -- If the left child is black, delete from it and make the tree black, then
 -- rebalance.
-delL x (TREE _ a@(TREE B _ _ _) y b) = balL $ TREE B (del x a) y b
+delL x (TREE _ ta@(TREE B _ _ _) y tb) = balL $ TREE B (del x ta) y tb
 -- Otherwise, delete from it and make the tree red.
-delL x (TREE _ a y b) = TREE R (del x a) y b
+delL x (TREE _ ta y tb) = TREE R (del x ta) y tb
 delL _ E = E
 
 -- Rebalance a black tree after we've deleted from a black left subtree.
 balL :: Tree a -> Tree a
 -- If the subtree is now red, swap colors.
-balL (TREE B (TREE R a x b) y c) = TREE R (TREE B a x b) y c
+balL (TREE B ta@(TREE R _ _ _) x tb) = TREE R (blk ta) x tb
 -- Otherwise, if the right subtree is black, make it red and balance.
-balL (TREE B a x (TREE B b y c)) = balance (TREE B a x (TREE R b y c))
+balL (TREE B ta x tb@(TREE B _ _ _)) = balance (TREE B ta x (red tb))
 -- Otherwise, if the right subtree is red, we go fucking mental.
-balL (TREE B a x (TREE R (TREE B b y c) z (TREE B e w f))) = TREE R (TREE B a x b) y (balance (TREE B c z (TREE R e w f)))
+balL (TREE B t x (TREE R (TREE B taa y tbb) z tb@(TREE B _ _ _))) = TREE R (TREE B t x taa) y (balance (TREE B tbb z (red tb)))
 balL t = t
 
 -- Delete `x` from the right child of a tree.
 delR :: (Show a, Ord a) => a -> Tree a -> Tree a
-delR x (TREE _ a y b@(TREE B _ _ _)) = balR $ TREE B a y (del x b)
-delR x (TREE _ a y b) = TREE R a y (del x b)
+delR x (TREE _ ta y tb@(TREE B _ _ _)) = balR $ TREE B ta y (del x tb)
+delR x (TREE _ ta y tb) = TREE R ta y (del x tb)
 delR _ E = E
+
+red :: Tree a -> Tree a
+red (TREE B ta x tb) = TREE R ta x tb
+red t = t
+
+blk :: Tree a -> Tree a
+blk (TREE R ta x tb) = TREE B ta x tb
+blk t = t
 
 -- Rebalance a black tree after we've deleted from a black right subtree.
 balR :: Tree a -> Tree a
--- If right subtree is red, swap colors with root.
-balR (TREE B a x (TREE R b y c)) = (TREE R a x (TREE B b y c))
+-- If right subtree is red, swap colors of root and right subtree.
+balR (TREE B ta x tb@(TREE R _ _ _)) = (TREE R ta x (blk tb))
 -- Otherwise, if left subtree is black, change it to red and balance.
-balR (TREE B (TREE B a x b) y c) = balance (TREE B (TREE R a x b) y c)
+balR (TREE B ta@(TREE B _ _ _) x tb) = balance (TREE B (red ta) x tb)
 -- Otherwise, if left subtree is red, go crazy.
-balR (TREE B (TREE R (TREE B a x b) y (TREE B c z d)) w e) = TREE R (balance (TREE B (TREE R a x b) y c)) z (TREE B d w e)
+balR (TREE B (TREE R ta@(TREE B _ _ _) x (TREE B tcc y tdd)) z t) = TREE R (balance (TREE B (red ta) x tcc)) y (TREE B tdd z t)
 balR t = t
 
 -- When we actually find `x` in `del`, it is the root of some tree, and we must
@@ -86,21 +94,21 @@ balR t = t
 fuse :: Tree a -> Tree a -> Tree a
 fuse E t = t
 fuse t E = t
-fuse a@(TREE B _ _ _) (TREE R b x c) = TREE R (fuse a b) x c
-fuse (TREE R a x b) c@(TREE B _ _ _) = TREE R a x (fuse b c)
-fuse (TREE R a x b) (TREE R c y d) =
-  case fuse b c of
-    (TREE R s' z' t') -> (TREE R (TREE R a x s') z' (TREE R t' y d))
-    bc@(TREE B _ _ _) -> (TREE R a x (TREE R bc y d))
+fuse t@(TREE B _ _ _) (TREE R ta x tb) = TREE R (fuse t ta) x tb
+fuse (TREE R ta x tb) t@(TREE B _ _ _) = TREE R ta x (fuse tb t)
+fuse (TREE R ta x tb) (TREE R tc y td) =
+  case fuse tb tc of
+    (TREE R taa z tbb) -> (TREE R (TREE R ta x taa) z (TREE R tbb y td))
+    t@(TREE B _ _ _) -> (TREE R ta x (TREE R t y td))
     E -> E
-fuse (TREE B a x b) (TREE B c y d) =
-  case fuse b c of
-    (TREE R i' z' j') -> (TREE R (TREE B a x i') z' (TREE B j' y d))
-    bc@(TREE B _ _ _) -> balL (TREE B a x (TREE B bc y d))
-    E -> (TREE R (TREE B a x d) y E)
+fuse (TREE B ta x tb) (TREE B tc y td) =
+  case fuse tb tc of
+    (TREE R taa z tbb) -> (TREE R (TREE B ta x taa) z (TREE B tbb y td))
+    t@(TREE B _ _ _) -> balL (TREE B ta x (TREE B t y td))
+    E -> (TREE R (TREE B ta x td) y E)
 
 difference :: (Show a, Ord a) => Tree a -> Tree a -> Tree a
-difference setA setB = foldr (\b set -> delete b set) setA $ toList setB
+difference ta tb = foldr (\x t -> delete x t) ta $ toList tb
 
 empty :: Tree a
 empty = E
@@ -110,60 +118,59 @@ fromList [] = E
 fromList (x : xs) = insert x (fromList xs)
 
 ins :: Ord a => a -> Tree a -> Tree a
-ins x (TREE color a y b)
-  | x < y = balance (TREE color (ins x a) y b)
-  | x == y = TREE color a y b
-  | x > y = balance (TREE color a y (ins x b))
+ins x (TREE color ta y tb)
+  | x < y = balance (TREE color (ins x ta) y tb)
+  | x == y = TREE color ta y tb
+  | x > y = balance (TREE color ta y (ins x tb))
 ins x E = TREE R E x E
 ins _ t = t
 
 insert :: Ord a => a -> Tree a -> Tree a
-insert z set = makeBlack $ ins z set
+insert x t = makeBlack $ ins x t
   where 
     makeBlack :: Tree a -> Tree a
-    makeBlack (TREE _ a y b) = TREE B a y b
-    makeBlack t = t
+    makeBlack (TREE _ ta y tb) = TREE B ta y tb
+    makeBlack t' = t'
 
 intersection :: Ord a => Tree a -> Tree a -> Tree a
-intersection setA = fromList . filter (\b -> member b setA) . toList
+intersection ta = fromList . filter (\x -> member x ta) . toList
 
 isDisjointFrom :: Ord a => Tree a -> Tree a -> Bool
-isDisjointFrom setA setB =
-  case intersection setA setB of
+isDisjointFrom ta tb =
+  case intersection ta tb of
     E -> True
     _ -> False
 
 isSubsetOf :: Ord a => Tree a -> Tree a -> Bool
-isSubsetOf setA setB
-  | (size . intersection setA) setB == size setA = True
+isSubsetOf ta tb
+  | (size . intersection ta) tb == size ta = True
   | otherwise = False
 
 member :: Ord a => a -> Tree a -> Bool
 member _ E = False
-member x (TREE _ a y b)
-  | x < y = member x a
+member x (TREE _ ta y tb)
+  | x < y = member x ta
   | x == y = True
-  | otherwise = member x b
+  | otherwise = member x tb
 
 null :: Tree a -> Bool
 null E = True
 null _ = False
 
 size :: Tree a -> Int
-size set = (length . toList) set
+size t = (length . toList) t
 
 toList :: Tree a -> [a]
 toList E = []
-toList (TREE _ a x b) = x : (toList a ++ toList b)
+toList (TREE _ ta x tb) = x : (toList ta ++ toList tb)
 
 union :: Ord a => Tree a -> Tree a -> Tree a
-union setA setB = fromList $ toList setA ++ toList setB
-
+union ta tb = fromList $ toList ta ++ toList tb
 
 balance :: Tree a -> Tree a
-balance (TREE B (TREE R (TREE R u aa v) bb w) cc x) = TREE R (TREE B u aa v) bb (TREE B w cc x)
-balance (TREE B (TREE R u aa (TREE R v bb w)) cc x) = TREE R (TREE B u aa v) bb (TREE B w cc x)
-balance (TREE B u aa (TREE R (TREE R v bb w) cc x)) = TREE R (TREE B u aa v) bb (TREE B w cc x)
-balance (TREE B u aa (TREE R v bb (TREE R w cc x))) = TREE R (TREE B u aa v) bb (TREE B w cc x)
-balance (TREE color u aa v) = TREE color u aa v
+balance (TREE B (TREE R (TREE R ta x tb) y tc) z td) = TREE R (TREE B ta x tb) y (TREE B tc z td)
+balance (TREE B (TREE R ta x (TREE R tb y tc)) z td) = TREE R (TREE B ta x tb) y (TREE B tc z td)
+balance (TREE B ta x (TREE R (TREE R tb y tc) z td)) = TREE R (TREE B ta x tb) y (TREE B tc z td)
+balance (TREE B ta x (TREE R tb y (TREE R tc z td))) = TREE R (TREE B ta x tb) y (TREE B tc z td)
+balance (TREE color ta x tb) = TREE color ta x tb
 balance E = E
