@@ -31,6 +31,48 @@ instance (Show a, Ord a) => Eq (Tree a) where
       (E, E) -> True
       (_, _) -> False
 
+red :: Tree a -> Tree a
+red (TREE B ta x tb) = TREE R ta x tb
+red t = t
+
+blk :: Tree a -> Tree a
+blk (TREE R ta x tb) = TREE B ta x tb
+blk t = t
+
+empty :: Tree a
+empty = E
+
+insert :: Ord a => a -> Tree a -> Tree a
+insert x t = makeBlack $ ins x t
+  where
+    makeBlack :: Tree a -> Tree a
+    makeBlack (TREE _ ta y tb) = TREE B ta y tb
+    makeBlack t' = t'
+
+ins :: Ord a => a -> Tree a -> Tree a
+ins x (TREE color ta y tb)
+  | x < y = balance (TREE color (ins x ta) y tb)
+  | x == y = TREE color ta y tb
+  | x > y = balance (TREE color ta y (ins x tb))
+ins x E = TREE R E x E
+ins _ t = t
+
+balance :: Tree a -> Tree a
+balance (TREE B (TREE R (TREE R ta x tb) y tc) z td) = TREE R (TREE B ta x tb) y (TREE B tc z td)
+balance (TREE B (TREE R ta x (TREE R tb y tc)) z td) = TREE R (TREE B ta x tb) y (TREE B tc z td)
+balance (TREE B ta x (TREE R (TREE R tb y tc) z td)) = TREE R (TREE B ta x tb) y (TREE B tc z td)
+balance (TREE B ta x (TREE R tb y (TREE R tc z td))) = TREE R (TREE B ta x tb) y (TREE B tc z td)
+balance (TREE color ta x tb) = TREE color ta x tb
+balance E = E
+
+fromList :: Ord a => [a] -> Tree a
+fromList [] = E
+fromList (x : xs) = insert x (fromList xs)
+
+toList :: Tree a -> [a]
+toList E = []
+toList (TREE _ ta x tb) = x : (toList ta ++ toList tb)
+
 delete :: (Show a, Ord a) => a -> Tree a -> Tree a
 delete _ E = E
 delete aa t = makeBlack $ del aa t
@@ -71,14 +113,6 @@ delR x (TREE _ ta y tb@(TREE B _ _ _)) = balR $ TREE B ta y (del x tb)
 delR x (TREE _ ta y tb) = TREE R ta y (del x tb)
 delR _ E = E
 
-red :: Tree a -> Tree a
-red (TREE B ta x tb) = TREE R ta x tb
-red t = t
-
-blk :: Tree a -> Tree a
-blk (TREE R ta x tb) = TREE B ta x tb
-blk t = t
-
 -- Rebalance a black tree after we've deleted from a black right subtree.
 balR :: Tree a -> Tree a
 -- If right subtree is red, swap colors of root and right subtree.
@@ -106,31 +140,20 @@ fuse (TREE B ta x tb) (TREE B tc y td) =
     (TREE R taa z tbb) -> (TREE R (TREE B ta x taa) z (TREE B tbb y td))
     t@(TREE B _ _ _) -> balL (TREE B ta x (TREE B t y td))
     E -> (TREE R (TREE B ta x td) y E)
+  -- where t@(TREE _ taa z tbb) = fuse tb tc
 
 difference :: (Show a, Ord a) => Tree a -> Tree a -> Tree a
 difference ta tb = foldr (\x t -> delete x t) ta $ toList tb
 
-empty :: Tree a
-empty = E
+member :: Ord a => a -> Tree a -> Bool
+member _ E = False
+member x (TREE _ ta y tb)
+  | x < y = member x ta
+  | x == y = True
+  | otherwise = member x tb
 
-fromList :: Ord a => [a] -> Tree a
-fromList [] = E
-fromList (x : xs) = insert x (fromList xs)
-
-ins :: Ord a => a -> Tree a -> Tree a
-ins x (TREE color ta y tb)
-  | x < y = balance (TREE color (ins x ta) y tb)
-  | x == y = TREE color ta y tb
-  | x > y = balance (TREE color ta y (ins x tb))
-ins x E = TREE R E x E
-ins _ t = t
-
-insert :: Ord a => a -> Tree a -> Tree a
-insert x t = makeBlack $ ins x t
-  where 
-    makeBlack :: Tree a -> Tree a
-    makeBlack (TREE _ ta y tb) = TREE B ta y tb
-    makeBlack t' = t'
+size :: Tree a -> Int
+size t = (length . toList) t
 
 intersection :: Ord a => Tree a -> Tree a -> Tree a
 intersection ta = fromList . filter (\x -> member x ta) . toList
@@ -146,31 +169,9 @@ isSubsetOf ta tb
   | (size . intersection ta) tb == size ta = True
   | otherwise = False
 
-member :: Ord a => a -> Tree a -> Bool
-member _ E = False
-member x (TREE _ ta y tb)
-  | x < y = member x ta
-  | x == y = True
-  | otherwise = member x tb
-
 null :: Tree a -> Bool
 null E = True
 null _ = False
 
-size :: Tree a -> Int
-size t = (length . toList) t
-
-toList :: Tree a -> [a]
-toList E = []
-toList (TREE _ ta x tb) = x : (toList ta ++ toList tb)
-
 union :: Ord a => Tree a -> Tree a -> Tree a
 union ta tb = fromList $ toList ta ++ toList tb
-
-balance :: Tree a -> Tree a
-balance (TREE B (TREE R (TREE R ta x tb) y tc) z td) = TREE R (TREE B ta x tb) y (TREE B tc z td)
-balance (TREE B (TREE R ta x (TREE R tb y tc)) z td) = TREE R (TREE B ta x tb) y (TREE B tc z td)
-balance (TREE B ta x (TREE R (TREE R tb y tc) z td)) = TREE R (TREE B ta x tb) y (TREE B tc z td)
-balance (TREE B ta x (TREE R tb y (TREE R tc z td))) = TREE R (TREE B ta x tb) y (TREE B tc z td)
-balance (TREE color ta x tb) = TREE color ta x tb
-balance E = E
