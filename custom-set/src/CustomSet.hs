@@ -140,7 +140,6 @@ fuse (TREE B ta x tb) (TREE B tc y td) =
     (TREE R taa z tbb) -> (TREE R (TREE B ta x taa) z (TREE B tbb y td))
     t@(TREE B _ _ _) -> balL (TREE B ta x (TREE B t y td))
     E -> (TREE R (TREE B ta x td) y E)
-  -- where t@(TREE _ taa z tbb) = fuse tb tc
 
 difference :: (Show a, Ord a) => Tree a -> Tree a -> Tree a
 difference ta tb = foldr (\x t -> delete x t) ta $ toList tb
