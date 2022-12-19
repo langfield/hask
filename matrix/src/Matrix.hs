@@ -18,11 +18,6 @@ import Data.Vector (Vector)
 import qualified Data.Array as A
 import qualified Data.Vector as V
 
-import Debug.Trace (trace)
-
-ttt :: Show a => String -> a -> a
-ttt s x = trace (s ++ ": " ++ show x) x
-
 data Matrix a = Matrix (Array (Int, Int) a) | Empty
   deriving (Eq, Show)
 
@@ -47,7 +42,7 @@ fromList xss@(xs:_) = Matrix $ A.listArray ((1, 1), (m, n)) (concat xss)
     n = length xs
 
 fromString :: (Read a, Show a) => String -> Matrix a
-fromString s = fromList $ ttt "xs" xs
+fromString s = fromList xs
   where
     xs = (map (map read) . map words . lines) s
 
@@ -61,7 +56,7 @@ reshape (_, n') (Matrix arr) = (fromList . chunksOf n' . A.elems) arr
 
 row :: Int -> Matrix a -> Vector a
 row _ Empty = V.empty
-row x (Matrix arr) = V.fromList [arr ! ((ttt "x" x), y) | y <- [1..ttt "n" n]]
+row x (Matrix arr) = V.fromList [arr ! (x, y) | y <- [1..n]]
   where
     n = cols (Matrix arr)
 
@@ -72,7 +67,7 @@ shape :: Matrix a -> (Int, Int)
 shape Empty = (0, 0)
 shape (Matrix arr) = (m, n)
   where
-    (_, (m, n)) = ttt "bounds" $ A.bounds arr
+    (_, (m, n)) = A.bounds arr
 
 transpose :: Matrix a -> Matrix a
 transpose Empty = Empty
