@@ -5,7 +5,6 @@ module Poker (bestHands) where
 import Control.Applicative ((<|>))
 import Data.Attoparsec.Text (Parser)
 import Data.Map (Map)
-import GHC.Data.Maybe (rightToMaybe)
 
 import qualified Data.Attoparsec.Text as Atto
 import qualified Data.List as L
@@ -34,10 +33,12 @@ data Category
     | TwoPair HighPair LowPair Kicker
     | OnePair Pair HighKicker MiddleKicker LowKicker
     | HighCard
-    deriving (Eq)
+    deriving (Eq, Show)
 data Rank = Number Integer | Jack | Queen | King | Ace deriving (Eq)
 data Suit = Clubs | Diamonds | Hearts | Spades deriving (Eq)
 data Card = Card Rank Suit
+data StrictCard = StrictCard Rank Suit
+  deriving Eq
 data Hand = Hand Category [Card]
 
 instance Show Rank where
@@ -60,13 +61,19 @@ instance Show Card where
 -- to high cards, we lose the ordering of the hand, which means our output will
 -- be wrong.
 instance Show Hand where
-  show (Hand _ cards) = (unwords . map show) cards
+  show (Hand cat cards) = "(" ++ show cat ++ ") " ++ (unwords . map show) cards
+
+show' :: Hand -> String
+show' (Hand _ cards) = (unwords . map show) cards
 
 instance Eq Card where
   (==) (Card a _) (Card b _) = a == b
 
 instance Ord Card where
   (<=) a b = scoreCardHigh a <= scoreCardHigh b
+
+instance Ord StrictCard where
+  (<=) _ _ = True
 
 instance Eq Hand where
   (Hand (StraightFlush h) _) == (Hand (StraightFlush h') _) = h == h'
@@ -85,52 +92,78 @@ instance Eq Hand where
   _ == _ = False
 
 instance Ord Hand where
+  -- Straight flushes
   (Hand (StraightFlush h) _) <= (Hand (StraightFlush h') _) = h <= h'
   (Hand (StraightFlush _) _) <= _ = False
+  _ <= (Hand (StraightFlush _) _) = True
+
+  -- Four-of-a-kinds
   (Hand (FourOfAKind q k) _) <= (Hand (FourOfAKind q' k') _)
     | q == q' && k <= k' = True
-    | q < q' = True
+    | q < q'    = True
     | otherwise = False
   (Hand (FourOfAKind _ _) _) <= _ = False
+  _ <= (Hand (FourOfAKind _ _) _) = True
+
+  -- Full houses
   (Hand (FullHouse t p) _) <= (Hand (FullHouse t' p') _)
     | t == t' && p <= p' = True
-    | t < t' = True
+    | t < t'    = True
     | otherwise = False
   (Hand (FullHouse _ _) _) <= _ = False
-  (Hand Flush cs) <= (Hand Flush cs') = (reverse . L.sort) cs <= (reverse . L.sort) cs'
+  _ <= (Hand (FullHouse _ _) _) = True
+
+  -- Flushes
+  (Hand Flush cs) <= (Hand Flush cs') =
+    (reverse . L.sort) cs <= (reverse . L.sort) cs'
   (Hand Flush _) <= _ = False
+  _ <= (Hand Flush _) = True
+
+  -- Straights
+  (Hand (Straight (Card Ace _)) _) <= (Hand (Straight (Card Ace _)) _) = True
+  (Hand (Straight _) _) <= (Hand (Straight (Card Ace _)) _) = False
   (Hand (Straight h) _) <= (Hand (Straight h') _) = h <= h'
   (Hand (Straight _) _) <= _ = False
+  _ <= (Hand (Straight _) _) = True
+
+  -- Three-of-a-kinds
   (Hand (ThreeOfAKind t h l) _) <= (Hand (ThreeOfAKind t' h' l') _)
-    | t < t' = True
+    | t < t'    = True
     | t == t' && h < h' = True
     | t == t' && h == h' && l <= l' = True
     | otherwise = False
-  (Hand (ThreeOfAKind _ _ _) _) <= _ = False
+  (Hand ThreeOfAKind {} _) <= _ = False
+  _ <= (Hand ThreeOfAKind {} _) = True
+
+  -- Two-pairs
   (Hand (TwoPair h l k) _) <= (Hand (TwoPair h' l' k') _)
-    | h < h' = True
+    | h < h'    = True
     | h == h' && l < l' = True
     | h == h' && l == l' && k <= k' = True
     | otherwise = False
-  (Hand (TwoPair _ _ _) _) <= _ = False
+  (Hand TwoPair {} _) <= _ = False
+  _ <= (Hand TwoPair {} _) = True
+
+  -- One-pairs
   (Hand (OnePair p h m l) _) <= (Hand (OnePair p' h' m' l') _)
-    | p < p' = True
+    | p < p'    = True
     | p == p' && h < h' = True
     | p == p' && h == h' && m < m' = True
     | p == p' && h == h' && m == m' && l <= l' = True
     | otherwise = False
-  (Hand (OnePair _ _ _ _) _) <= _ = False
-  (Hand HighCard cs) <= (Hand HighCard cs') = (reverse . L.sort) cs <= (reverse . L.sort) cs'
-  _ <= _ = False
-  
+  (Hand OnePair {} _) <= _ = False
+
+  -- High-cards
+  (Hand HighCard cs) <= (Hand HighCard cs') =
+    (reverse . L.sort) cs <= (reverse . L.sort) cs'
+  (Hand HighCard _) <= _ = True
+
 
 bestHands :: [String] -> Maybe [String]
-bestHands xs = 
-  case eitherHands of
-    Left msg -> Just [msg]
-    Right hands -> (Just . map show . best) hands
-  where
-    eitherHands = (mapM (Atto.parseOnly handParser . T.pack)) xs
+bestHands xs = case eitherHands of
+  Left  _     -> Nothing
+  Right hands -> (Just . map show' . best) hands
+  where eitherHands = mapM (Atto.parseOnly handParser . T.pack) xs
 
 best :: [Hand] -> [Hand]
 best hs = case (reverse . L.sort) hs of
@@ -148,10 +181,15 @@ scoreCardLow :: Card -> Integer
 scoreCardLow (Card Ace _) = 1
 scoreCardLow c = scoreCardHigh c
 
+strictify :: Card -> StrictCard
+strictify (Card a b) = StrictCard a b
+
 handParser :: Parser Hand
 handParser = do
   cs <- Atto.count 5 cardParser
-  if isUnique cs then handParser' cs else fail "Hand has duplicate cards"
+  if (isUnique . map strictify) cs
+    then handParser' cs
+    else fail "Hand has duplicate cards"
   where
     isUnique :: Ord a => [a] -> Bool
     isUnique xs = length xs == (length . S.fromList) xs
