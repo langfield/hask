@@ -6,19 +6,22 @@ module BankAccount
   , openAccount
   ) where
 
-data Status = Open | Closed
-data BankAccount = BankAccount Integer Status
+import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
+
+newtype BankAccount = BankAccount (MVar (Maybe Integer))
 
 closeAccount :: BankAccount -> IO ()
-closeAccount _ = pure ()
+closeAccount (BankAccount m) = modifyMVar_ m (const (pure Nothing))
 
 getBalance :: BankAccount -> IO (Maybe Integer)
-getBalance (BankAccount x Open  ) = pure $ Just x
-getBalance (BankAccount _ Closed) = pure Nothing
+getBalance (BankAccount m) = readMVar m
 
 incrementBalance :: BankAccount -> Integer -> IO (Maybe Integer)
-incrementBalance (BankAccount _ Closed) _ = pure Nothing
-incrementBalance (BankAccount x Open  ) y = pure $ Just $ x + y
+incrementBalance (BankAccount m) n = modifyMVar m go
+  where
+    go :: Maybe Integer -> IO (Maybe Integer, Maybe Integer)
+    go Nothing  = pure (Nothing, Nothing)
+    go (Just x) = pure (Just (x + n), Just (x + n))
 
 openAccount :: IO BankAccount
-openAccount = pure $ BankAccount 0 Open
+openAccount = BankAccount <$> newMVar (Just 0)
