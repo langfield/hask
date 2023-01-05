@@ -1,5 +1,7 @@
 module Sublist (sublist) where
 
+import qualified Data.List as L
+
 sublist :: Eq a => [a] -> [a] -> Maybe Ordering
 sublist xs ys
   | xs == ys = Just EQ
@@ -11,4 +13,4 @@ sublist xs ys
 sublist' :: Eq a => [a] -> [a] -> Bool
 sublist' [] _ = True
 sublist' _ [] = False
-sublist' xs (y:ys) = take (length xs) (y:ys) == xs || sublist' xs ys
+sublist' xs (y:ys) = L.isPrefixOf xs (y:ys) || sublist' xs ys
