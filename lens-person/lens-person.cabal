@@ -4,33 +4,34 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           go-counting
-version:        1.0.0.4
+name:           lens-person
+version:        0.1.0.3
 build-type:     Simple
 
 library
   exposed-modules:
-      Counting
+      Person
   other-modules:
-      Paths_go_counting
+      Paths_lens_person
   hs-source-dirs:
       src
   ghc-options: -Wall
   build-depends:
       base
-    , containers
+    , lens
+    , time
   default-language: Haskell2010
 
 test-suite test
   type: exitcode-stdio-1.0
   main-is: Tests.hs
   other-modules:
-      Paths_go_counting
+      Paths_lens_person
   hs-source-dirs:
       test
   build-depends:
       base
-    , containers
-    , go-counting
     , hspec
+    , lens-person
+    , time
   default-language: Haskell2010
