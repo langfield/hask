@@ -12,7 +12,6 @@ library
   exposed-modules:
       Counting
   other-modules:
-      Dounting
       Paths_go_counting
   hs-source-dirs:
       src
