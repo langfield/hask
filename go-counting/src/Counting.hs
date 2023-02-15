@@ -36,6 +36,7 @@ mkBoard rows = foldr mkRow (S.empty, M.empty) $ zip rows [1..]
     mkRow :: ([Char], Int) -> (Empties, ColorMap) -> (Empties, ColorMap)
     mkRow (xs, i) board = foldr mkSquare board $ zip xs (zip (repeat i) [1..])
 
+-- When should this function return Nothing?
 findTerritory :: Maybe Coord -> (Empties, ColorMap) -> Maybe (Territory, (Empties, ColorMap))
 findTerritory Nothing _ = Nothing
 findTerritory (Just coord) board@(empties, colors)
