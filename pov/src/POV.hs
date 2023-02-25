@@ -4,6 +4,11 @@ import Control.Monad (join)
 import Data.Maybe (listToMaybe, mapMaybe)
 import Data.Tree (Tree(..))
 
+import Debug.Trace (trace)
+
+trace' :: Show a => String -> a -> a
+trace' s x = trace (s ++ ": " ++ show x) x
+
 -- We will traverse the tree, searching for the value `x`. At each step, we
 -- will rotate the tree such that the node we are moving to becomes the new
 -- root.
@@ -17,13 +22,13 @@ import Data.Tree (Tree(..))
 --
 -- We do this by finding the node `x` and then flipping the direction of every
 -- edge from `x` to the root.
-fromPOV :: Eq a => a -> Tree a -> Maybe (Tree a)
+fromPOV :: (Show a, Eq a) => a -> Tree a -> Maybe (Tree a)
 fromPOV x = search x Nothing
 
-search :: Eq a => a -> Maybe (Tree a) -> Tree a -> Maybe (Tree a)
+search :: (Eq a, Show a) => a -> Maybe (Tree a) -> Tree a -> Maybe (Tree a)
 search x Nothing node@(Node y children)
   | x == y = Just node
-  | otherwise = (join . listToMaybe . map (search x (Just node))) children
+  | otherwise = (listToMaybe . mapMaybe (search x (Just node))) children
 search x (Just (Node z siblings)) node@(Node y children)
   | x == y = Just node
   | otherwise = (join . listToMaybe . map search') children
@@ -41,5 +46,5 @@ getPath x ys (Node y children)
   | x == y = Just (y : ys)
   | otherwise = listToMaybe $ mapMaybe (getPath x (y : ys)) children
 
-tracePathBetween :: Eq a => a -> a -> Tree a -> Maybe [a]
+tracePathBetween :: (Show a, Eq a) => a -> a -> Tree a -> Maybe [a]
 tracePathBetween from to tree = getPath to [] =<< fromPOV from tree
