@@ -1,13 +1,7 @@
 module POV (fromPOV, tracePathBetween) where
 
-import Control.Monad (join)
 import Data.Maybe (listToMaybe, mapMaybe)
 import Data.Tree (Tree(..))
-
-import Debug.Trace (trace)
-
-trace' :: Show a => String -> a -> a
-trace' s x = trace (s ++ ": " ++ show x) x
 
 -- We will traverse the tree, searching for the value `x`. At each step, we
 -- will rotate the tree such that the node we are moving to becomes the new
@@ -30,13 +24,13 @@ search x Nothing node@(Node y children)
   | x == y = Just node
   | otherwise = (listToMaybe . mapMaybe (search x (Just node))) children
 search x (Just (Node z siblings)) node@(Node y children)
-  | x == y = Just node
-  | otherwise = (join . listToMaybe . map search') children
+  | x == y = Just (Node y (parent' : children))
+  | otherwise = (listToMaybe . mapMaybe search') children
   where
     parent' = Node z $ filter (/= node) siblings
     search' child = search x (Just node') child
       where
-        node' = Node x (parent' : [c | c <- children, c /= child])
+        node' = Node y (parent' : [c | c <- children, c /= child])
 
 getPath :: Eq a => a -> [a] -> Tree a -> Maybe [a]
 getPath x ys (Node y [])
@@ -47,4 +41,4 @@ getPath x ys (Node y children)
   | otherwise = listToMaybe $ mapMaybe (getPath x (y : ys)) children
 
 tracePathBetween :: (Show a, Eq a) => a -> a -> Tree a -> Maybe [a]
-tracePathBetween from to tree = getPath to [] =<< fromPOV from tree
+tracePathBetween from to tree = fmap reverse $ getPath to [] =<< fromPOV from tree

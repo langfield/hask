@@ -6,8 +6,16 @@ import Data.Tree         (Tree(Node), rootLabel)
 import Data.List         (sort)
 import Test.Hspec        (Spec, describe, it, shouldBe)
 import Test.Hspec.Runner (configFastFail, defaultConfig, hspecWith)
+import Data.Tree (Tree(..), drawTree)
 
 import POV (fromPOV, tracePathBetween)
+import Data.Maybe (fromJust)
+
+newtype PrettyTree = PrettyTree (Tree String)
+
+instance Show PrettyTree where
+  show (PrettyTree tree) = drawTree tree
+
 
 main :: IO ()
 main = hspecWith defaultConfig {configFastFail = True} specs
