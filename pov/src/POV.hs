@@ -20,22 +20,21 @@ fromPOV :: (Show a, Eq a) => a -> Tree a -> Maybe (Tree a)
 fromPOV x = search x Nothing
 
 search :: (Eq a, Show a) => a -> Maybe (Tree a) -> Tree a -> Maybe (Tree a)
-search x Nothing node@(Node y children)
-  | x == y = Just node
-  | otherwise = (listToMaybe . mapMaybe (search x (Just node))) children
-search x (Just (Node z siblings)) node@(Node y children)
-  | x == y = Just (Node y (parent' : children))
+search tgt Nothing node@(Node val children)
+  | tgt == val = Just node
+  | otherwise = (listToMaybe . mapMaybe (search tgt (Just node))) children
+search tgt (Just (Node p siblings)) node@(Node val children)
+  | tgt == val = Just (Node val (parent' : children))
   | otherwise = (listToMaybe . mapMaybe search') children
   where
-    parent' = Node z $ filter (/= node) siblings
-    search' child = search x (Just node') child
+    parent' = Node p $ filter (/= node) siblings
+    search' child = search tgt (Just node') child
       where
-        node' = Node y (parent' : [c | c <- children, c /= child])
+        -- Copy of `node` where we include `parent'` and exclude `child`. This
+        -- will be the new parent for the recursive call.
+        node' = Node val (parent' : [c | c <- children, c /= child])
 
 getPath :: Eq a => a -> [a] -> Tree a -> Maybe [a]
-getPath x ys (Node y [])
-  | x == y = Just (y : ys)
-  | otherwise = Nothing
 getPath x ys (Node y children)
   | x == y = Just (y : ys)
   | otherwise = listToMaybe $ mapMaybe (getPath x (y : ys)) children
