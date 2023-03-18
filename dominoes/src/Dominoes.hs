@@ -1,27 +1,35 @@
 module Dominoes (chain) where
 
+import Data.Map (Map)
+import Data.Set (Set)
+
+import qualified Data.Map as M
+import qualified Data.Set as S
+import qualified Data.List as L
 import qualified Data.Maybe as MB
 
 type Domino = (Int, Int)
-data Zipper = Zipper [Domino] Domino [Domino]
-data State = State Int [Domino]
-
--- | Compute a zipper traversal that shifts items on the left to the right.
-travel :: Zipper -> [Zipper]
-travel z@(Zipper [] _ _) = [z]
-travel z@(Zipper (l : ls) x rs) = z : travel (Zipper ls l (x : rs))
-
--- | Entrypoint to the search procedure, which recall is searching for a chain of dominoes.
-search :: Zipper -> Maybe [Domino]
-search (Zipper [] d []) = Just [d]
-search (Zipper (l : ls) (a, b) []) = 
-search (Zipper [] d (r : rs)) = Nothing
-search (Zipper (l : ls) d (r : rs)) = Nothing
-
-searchWithStart :: Zipper -> Maybe [Domino]
+type DominoMap = Map Int [Int]
+type State = (Set Domino, Map Int [Int])
 
 -- | Recursive searching function, to which we give our starting point, and the value
-
 chain :: [Domino] -> Maybe [Domino]
-chain [] = Just []
-chain (d : ds) = (MB.listToMaybe . MB.mapMaybe search . travel) (Zipper ds d [])
+chain = search . initState
+
+initState :: [Domino] -> State
+initState ds = (s, m)
+  where
+    m = foldr insert M.empty ds
+    s = S.fromList ds
+
+search :: State -> Maybe [Domino]
+search (s, m) = Nothing
+
+insert :: Domino -> DominoMap -> DominoMap
+insert (a, b) = M.insertWith (++) b [a] . M.insertWith (++) a [b]
+
+remove :: Domino -> DominoMap -> DominoMap
+remove (a, b) = M.alter (fmap (L.delete b)) a . M.alter (fmap (L.delete a)) b
+
+remove' :: DominoMap -> Domino -> DominoMap
+remove' m (a, b) = M.alter (fmap (L.delete b)) a . M.alter (fmap (L.delete a)) b $ m
