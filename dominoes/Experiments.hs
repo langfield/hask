@@ -4,7 +4,7 @@ import Test.LeanCheck.Instances
 import Data.Map (Map)
 import qualified Data.Map as M
 
-import Dominoes (chain, insert, remove, search, length', State, Domino)
+import Dominoes (chain, insert, remove, search, State, Domino)
 
 instance Name (Map a b) where
   name m = "map" 
@@ -21,6 +21,5 @@ main = speculate args
     , showConstant (0 :: Int)
     , constant "insert" (insert :: Domino -> State -> State)
     , constant "remove" (remove :: Domino -> State -> State)
-    , constant "length'" (length' :: State -> Int)
     ]
   }
