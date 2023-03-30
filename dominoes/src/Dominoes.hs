@@ -1,10 +1,8 @@
-module Dominoes (chain, initState, isCyclic, search, insert, remove, State, Domino) where
+module Dominoes (chain, isCyclic, search, Domino) where
 
-import Data.Map (Map)
 import Data.Tuple (swap)
 
 import qualified Data.List as L
-import qualified Data.Map as M
 import qualified Data.Maybe as MB
 
 import Debug.Trace (trace, traceM)
@@ -13,13 +11,9 @@ trace' :: Show a => String -> a -> a
 trace' s x = trace (s ++ ": " ++ show x) x
 
 type Domino = (Int, Int)
-type State = ([Domino], Map Int [Int])
 
 chain :: [Domino] -> Maybe [Domino]
-chain = L.find isCyclic . search 0 . initState
-
-initState :: [Domino] -> State
-initState = foldr insert ([], M.empty)
+chain = L.find isCyclic . search 0
 
 isCyclic :: [Domino] -> Bool
 isCyclic [] = True
@@ -32,20 +26,16 @@ prepend (a, b) ((a', b') : ds)
   | b == a'   = Just $ (a, b) : (a', b') : ds
   | otherwise = Nothing
 
-search' :: Int -> State -> Domino -> [[Domino]]
-search' depth state (a, b) = MB.mapMaybe (prepend (a, b)) . search (depth + 1) . remove (a, b) $ state
+search' :: Int -> [Domino] -> Domino -> [[Domino]]
+search' _ [] _ = []
+search' depth ds (a, b) = forwardResults ++ backwardResults
+  where
+    forwardResults = MB.mapMaybe (prepend (a, b)) . search (depth + 1) . delete' (a, b) $ ds
+    backwardResults = MB.mapMaybe (prepend (b, a)) . search (depth + 1) . delete' (b, a) $ ds
 
-search :: Int -> State -> [[Domino]]
-search _     ([], _) = [[]]
-search depth (ds, m) = do
-  -- traceM $ "Dominoes: " ++ show ds
-  concatMap (search' depth (ds, m)) $ ds ++ map swap ds
-
-insert :: Domino -> State -> State
-insert (a, b) (ds, m) = ((a, b) : ds, M.insertWith (++) b [a] . M.insertWith (++) a [b] $ m)
-
-remove :: Domino -> State -> State
-remove (a, b) (ds, m) = (delete' (a, b) ds, M.alter (fmap (L.delete b)) a . M.alter (fmap (L.delete a)) b $ m)
+search :: Int -> [Domino] -> [[Domino]]
+search _ [] = [[]]
+search depth ds = concatMap (search' depth ds) ds
 
 -- Delete a swapped domino if no non-swapped version is found.
 delete' :: Domino -> [Domino] -> [Domino]
