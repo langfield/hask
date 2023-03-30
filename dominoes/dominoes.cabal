@@ -23,21 +23,6 @@ library
     , speculate
   default-language: Haskell2010
 
-test-suite experiments
-  type: exitcode-stdio-1.0
-  main-is: Experiments.hs
-  other-modules:
-      Paths_dominoes
-  hs-source-dirs:
-      ./
-  build-depends:
-      base
-    , containers
-    , dominoes
-    , leancheck-instances
-    , speculate
-  default-language: Haskell2010
-
 test-suite test
   type: exitcode-stdio-1.0
   main-is: Tests.hs
