@@ -19,8 +19,6 @@ library
   build-depends:
       base
     , containers
-    , leancheck-instances
-    , speculate
   default-language: Haskell2010
 
 test-suite test
@@ -34,5 +32,4 @@ test-suite test
       base
     , dominoes
     , hspec
-    , speculate
   default-language: Haskell2010

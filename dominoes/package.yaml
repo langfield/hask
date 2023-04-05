@@ -10,8 +10,6 @@ library:
   ghc-options: -Wall
   dependencies:
   - containers
-  - speculate
-  - leancheck-instances
   # - foo       # List here the packages you
   # - bar       # want to use in your solution.
 
@@ -22,4 +20,3 @@ tests:
     dependencies:
       - dominoes
       - hspec
-      - speculate
