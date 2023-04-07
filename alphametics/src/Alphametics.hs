@@ -5,11 +5,12 @@ import Debug.Trace (trace)
 ttt :: Show a => String -> a -> a
 ttt s x = trace (s ++ ": " ++ show x) x
 
-solve :: String -> Maybe [(Char, Int)]
-solve puzzle = Just [(c, 0)]
+splitAtEq :: String -> (String, String)
+splitAtEq s = (expression, result)
   where
-    c :: Char
-    c =
-      case ttt "puzzle" puzzle of
-        "" -> 'a'
-        (x:_) -> x
+    s' = reverse s
+    result = (reverse . takeWhile (/= ' ')) s'
+    expression = (reverse . dropWhile (`elem` " =") . dropWhile (/= ' ')) s'
+
+solve :: String -> Maybe [(Char, Int)]
+solve puzzle = Nothing
