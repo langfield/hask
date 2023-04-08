@@ -12,5 +12,15 @@ splitAtEq s = (expression, result)
     result = (reverse . takeWhile (/= ' ')) s'
     expression = (reverse . dropWhile (`elem` " =") . dropWhile (/= ' ')) s'
 
+splitIntoSummands :: String -> [String]
+splitIntoSummands "" = []
+splitIntoSummands s = summand : splitIntoSummands rest
+  where
+    summand = takeWhile (/= ' ') s
+    rest = (dropWhile (`elem` " +") . dropWhile (/= ' ')) s
+
 solve :: String -> Maybe [(Char, Int)]
 solve puzzle = Nothing
+  where
+    (expression, result) = splitAtEq puzzle
+    summands = splitIntoSummands expression
