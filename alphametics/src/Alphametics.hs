@@ -1,39 +1,28 @@
 module Alphametics (solve) where
 
 import Data.List ((\\))
+import Data.List.NonEmpty (NonEmpty)
 
 import qualified Data.Char as C
 import qualified Data.List as L
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Maybe as MB
-
-import Debug.Trace (trace)
-
-trace' :: Show a => String -> a -> a
-trace' s x = trace (s ++ ": " ++ show x) x
 
 -- | Find every map which solves `terms`.
 --
 -- A map is an assignment of digits to characters.
-solve :: String -> Maybe [(Char, Int)]
-solve puzzle = L.find (`solves` terms) maps
+solve' :: NonEmpty String -> Maybe [(Char, Int)]
+solve' terms = L.find (`solves` terms) maps
   where
-    maps     = map (zip ls') $ filter (zerosAfter l) $ L.permutations [0 .. 9]
-    l        = length initials
-    ls'      = initials ++ (letters \\ initials)
-    initials = trace' "initials" $ L.nub $ map head terms
-    letters  = L.nub $ concat terms
-    terms    = trace' "terms" $ takeWhile (not . null) $ L.unfoldr f puzzle
-      where
-        f cs = return (term, rest')
-          where
-            (term, rest ) = span C.isUpper cs
-            (_   , rest') = break C.isUpper rest
+    maps     = map (zip chars) $ filter (\p -> 0 `notElem` take (length initials) p) $ L.permutations [0 .. 9]
+    chars    = initials ++ (L.nub (concat terms) \\ initials)
+    initials = (L.nub . MB.catMaybes . NE.toList . NE.map MB.listToMaybe) terms
 
-zerosAfter :: Int -> [Int] -> Bool
-zerosAfter l p = 0 `notElem` trace' "permutation prefix" (take l (trace' "permutation" p))
+solve :: String -> Maybe [(Char, Int)]
+solve puzzle = solve' =<< NE.nonEmpty (filter (all C.isUpper) $ words puzzle)
 
-solves :: [(Char, Int)] -> [String] -> Bool
-solves cmap terms = sum (toInt <$> init terms) == toInt (last terms)
+solves :: [(Char, Int)] -> NonEmpty String -> Bool
+solves cmap terms = sum (toInt <$> NE.init terms) == toInt (NE.last terms)
   where
     toInt xs = fromDigits $ MB.fromJust . (`lookup` cmap) <$> xs
     fromDigits = L.foldl' (\n x -> n * 10 + x) 0
