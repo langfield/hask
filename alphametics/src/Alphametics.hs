@@ -25,8 +25,10 @@ solve :: String -> Maybe [(Char, Int)]
 solve puzzle = solve' =<< NE.nonEmpty (filter (all C.isUpper) $ words puzzle)
 
 solves :: [(Char, Int)] -> NonEmpty String -> Bool
-solves cmap terms = sum (toInt <$> NE.init terms) == toInt (NE.last terms)
+solves cmap terms = (sum <$> mapM toInt (NE.init terms)) == toInt (NE.last terms)
   where
     toInt :: [Char] -> Maybe Int
-    toInt xs = fromDigits <$> sequence $ (`lookup` cmap) <$> xs
+    toInt xs = fromDigits <$> mapM (`lookup` cmap) xs
+
+    fromDigits :: [Int] -> Int
     fromDigits = L.foldl' (\n x -> n * 10 + x) 0
