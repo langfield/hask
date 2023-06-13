@@ -4,18 +4,16 @@ import qualified Data.Char as C
 import qualified Data.List as L
 
 data Operator = Plus | Times | Power
-    deriving (Show)
+  deriving (Show)
 
-data TTree = TLeaf String
-          | TTree Operator TTree TTree
-    deriving (Show)
+data TTree = TLeaf String | TTree Operator TTree TTree
+  deriving (Show)
 
 data TEquation = TE TTree String
   deriving Show
 
-data VTree = VLeaf Int
-          | VTree Operator VTree VTree
-    deriving (Show)
+data VTree = VLeaf Int | VTree Operator VTree VTree
+  deriving (Show)
 
 data VEquation = VE VTree Int
   deriving Show
@@ -66,7 +64,7 @@ digitsForString s c = map digitForChar s
       Nothing -> if C.isNumber i then C.digitToInt i else error ("char " ++ show i ++ " not found in " ++ show c)
 
 digitsToNumber :: [Int] -> Int
-digitsToNumber = digitsToNumberReverse . reverse where digitsToNumberReverse = foldr (\x s -> x + s * 10) 0
+digitsToNumber = foldr (\x s -> x + s * 10) 0 . reverse
 
 generateCombinations :: Int -> [[Int]]
 generateCombinations l = genRec l [0 .. 9] []
