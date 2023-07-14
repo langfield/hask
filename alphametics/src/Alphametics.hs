@@ -1,5 +1,6 @@
 module Alphametics (solve) where
 
+import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.Char as C
 import qualified Data.List as L
 
@@ -67,12 +68,12 @@ digitsToNumber :: [Int] -> Int
 digitsToNumber = foldr (\x s -> x + s * 10) 0 . reverse
 
 generateCombinations :: Int -> [[Int]]
-generateCombinations l = genRec l [0 .. 9] []
+generateCombinations n = go n [0 .. 9] []
   where
-    genRec :: Int -> [Int] -> [Int] -> [[Int]]
-    genRec l' xs c
-      | l' == 0   = [c]
-      | otherwise = concatMap (\x -> genRec (l' - 1) (L.delete x xs) (x : c)) xs
+    go :: Int -> [Int] -> [Int] -> [[Int]]
+    go k xs c
+      | k == 0    = [c]
+      | otherwise = concatMap (\x -> go (k - 1) (L.delete x xs) (x : c)) xs
 
 testCombination :: TEquation -> Combination -> Bool
 testCombination e c = maybe False equationMatches (convertToValueEquation e c)
@@ -90,6 +91,7 @@ parse s = Just (TE (parseTree ts) r)
     sides   = removeEqual . break (== "==")
     removeEqual (hs, us) = (hs, last us)
 
+-- | This would be better replaced by something which does the opposite of intercalate.
 splitOp :: String -> [String] -> Maybe ([String], [String])
 splitOp op xs = case break (== op) xs of
   (_ , []) -> Nothing
@@ -104,6 +106,13 @@ parseTreeRec ops xs
   | otherwise = case splitOp currentOp xs of
     Just (hs, ts) -> TTree (toOperator currentOp) (parseTreeRec ops hs) (parseTreeRec ops ts)
     _             -> parseTreeRec (tail ops) xs
+  where currentOp = head ops
+
+parseTreeRec' :: [String] -> NonEmpty String -> TTree
+parseTreeRec' ops (x :| []) = TLeaf x
+parseTreeRec' ops (x :| xs) =
+  case splitOp currentOp (x : xs) of
+    _ -> TLeaf x
   where currentOp = head ops
 
 toOperator :: String -> Operator
