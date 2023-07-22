@@ -20,8 +20,13 @@ winner board
 -- The easiest way to do this is just to return `True` when we've reached the
 -- last row. This should probably be a simple DFS function, right?
 won :: Player -> Board -> Bool
-won c board = any $ map (uncurry (search c board))
+won _ [] = False
+won c board@(row : _) = or outcomes
+  where
+    m = length board
+    n = length row
+    outcomes = [search c board (i, j) | i <- [0..m], j <- [0..n]]
 
-search :: Player -> Board -> Int -> Int -> Bool
-search c [] _ _ = True
-search c rows x y = False
+search :: Player -> Board -> (Int, Int) -> Bool
+search _ [] _ = True
+search c rows (x, y) = False
