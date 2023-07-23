@@ -27,6 +27,10 @@ won c board@(row : _) = or outcomes
     n = length row
     outcomes = [search c board (i, j) | i <- [0..m], j <- [0..n]]
 
-search :: Player -> Board -> (Int, Int) -> Bool
-search _ [] _ = True
-search c rows (x, y) = False
+search :: Player -> Board -> Int -> (Int, Int) -> Bool
+search _ [] _ _ = True
+search c rows m (i, j)
+  | i == m - 1 = True
+  | otherwise = False
+  where
+    c' = rows[i][j]

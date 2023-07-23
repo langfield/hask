@@ -53,3 +53,16 @@ won since `O` didn't connect top and bottom.
 - @rbasso
 - @sshine
 - @tejasbubane
+
+## Notes
+
+Okay, so last time we implemented `won`. I believe this is pretty damn close to
+correct. So now we're focusing on `search`. Right now we basically have it
+sorried out. So we want to search from `(x, y)`, basically doing DFS looking
+for the bottom row.
+
+So we check if `i == m - 1`, which determines if we've reached the last row.
+And we also must check if `c == c'`, so we know we're on the right type of
+square. But there is a problem because without dependent types, we have no way
+of safely indexing into the list. So we need to do search in the nested list
+without indexing.
