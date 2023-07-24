@@ -1,6 +1,7 @@
 module Connect (Mark(..), winner) where
 
 import qualified Data.List as L
+import qualified Data.Heap as H
 
 data Mark = Cross | Nought deriving (Eq, Show)
 type Board = [String]
@@ -25,12 +26,10 @@ won c board@(row : _) = or outcomes
   where
     m = length board
     n = length row
-    outcomes = [search c board (i, j) | i <- [0..m], j <- [0..n]]
+    outcomes = [search c board m (i, j) | i <- [0..m], j <- [0..n]]
 
 search :: Player -> Board -> Int -> (Int, Int) -> Bool
 search _ [] _ _ = True
 search c rows m (i, j)
   | i == m - 1 = True
   | otherwise = False
-  where
-    c' = rows[i][j]

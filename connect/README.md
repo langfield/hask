@@ -66,3 +66,6 @@ And we also must check if `c == c'`, so we know we're on the right type of
 square. But there is a problem because without dependent types, we have no way
 of safely indexing into the list. So we need to do search in the nested list
 without indexing.
+
+It turns out, the way we probably want to do this is with a pair of nested
+zippers. So let's take a moment and review how zippers work in pure langauges.
