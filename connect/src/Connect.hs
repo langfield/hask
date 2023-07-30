@@ -7,6 +7,8 @@ data Mark = Cross | Nought deriving (Eq, Show)
 type Board = [String]
 type Player = Char
 
+data Node = Empty | Node Int [Node]
+
 winner :: [String] -> Maybe Mark
 winner board
   | cross = Just Cross
@@ -33,3 +35,15 @@ search _ [] _ _ = True
 search c rows m (i, j)
   | i == m - 1 = True
   | otherwise = False
+
+-- We essentially want to iterate over something that gives us a 7-tuple, where
+-- we get the current element, and its 6 neighbors. And then we can put them
+-- all in a data structure.
+--
+-- One good way to start might be to solve the 1-dimensional case first, where
+-- we have a list and we want to get 3-tuples of each element and its
+-- neighbors.
+build :: [[Char]] -> Node
+build [] = Empty
+build ([] : _) = Empty
+build ((x : xs) : xss) = Empty
