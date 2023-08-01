@@ -1,7 +1,8 @@
 module Connect (Mark(..), winner) where
 
+import Data.Tuple (swap)
+import qualified Data.Map as M
 import qualified Data.List as L
-import qualified Data.Heap as H
 
 data Mark = Cross | Nought deriving (Eq, Show)
 type Board = [String]
@@ -47,3 +48,18 @@ build :: [[Char]] -> Node
 build [] = Empty
 build ([] : _) = Empty
 build ((x : xs) : xss) = Empty
+
+build' :: [Char] -> Node
+build' [] = Empty
+
+rights :: [a] -> [(a, a)]
+rights (x : y : rest) = (x, y) : rights (y : rest)
+rights _ = []
+
+lefts :: [a] -> [(a, a)]
+lefts = map swap . rights
+
+rights' :: [a] -> [(a, Maybe a)]
+rights' [] = []
+rights' [x] = [(x, Nothing)]
+rights' (x : y : rest) = (x, Just y) : rights' (y : rest)
