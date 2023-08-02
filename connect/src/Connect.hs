@@ -1,6 +1,7 @@
 module Connect (Mark(..), winner) where
 
 import Data.Tuple (swap)
+import Data.Map (Map)
 import qualified Data.Map as M
 import qualified Data.List as L
 
@@ -63,3 +64,22 @@ rights' :: [a] -> [(a, Maybe a)]
 rights' [] = []
 rights' [x] = [(x, Nothing)]
 rights' (x : y : rest) = (x, Just y) : rights' (y : rest)
+
+lefts' :: [a] -> [(a, Maybe a)]
+lefts' = reverse . rights' . reverse
+
+merge :: (a, Maybe a) -> (a, Maybe a) -> (Maybe a, a, Maybe a)
+merge (x, l) (_, r) = (l, x, r)
+
+neighbors :: [a] -> [(Maybe a, a, Maybe a)]
+neighbors xs = zipWith merge (lefts' xs) (rights' xs)
+
+rights'' :: Ord a => [a] -> Map a (Maybe a)
+rights'' [] = M.empty
+rights'' [x] = M.singleton x Nothing
+rights'' (x : y : rest) = M.insert x (Just y) (rights'' (y : rest))
+
+lefts'' :: Ord a => [a] -> Map a (Maybe a)
+lefts'' [] = M.empty
+lefts'' [x] = M.singleton x Nothing
+lefts'' (x : y : rest) = M.insert x (Just y) (lefts'' (y : rest))
