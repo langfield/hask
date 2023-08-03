@@ -1,4 +1,4 @@
-module Connect (Mark(..), winner) where
+module Connect (Mark(..), winner, neighbors2D) where
 
 import Data.Tuple (swap)
 import Data.Map (Map)
@@ -73,6 +73,18 @@ merge (x, l) (_, r) = (l, x, r)
 
 neighbors :: [a] -> [(Maybe a, a, Maybe a)]
 neighbors xs = zipWith merge (lefts' xs) (rights' xs)
+
+cmp :: Ord a => (Maybe a, a, Maybe a) -> (Maybe a, a, Maybe a) -> Ordering
+cmp (_, x, _) (_, y, _) = compare x y
+
+merge2D :: (Maybe a, a, Maybe a) -> (Maybe a, a, Maybe a) -> (a, Maybe a, Maybe a, Maybe a, Maybe a)
+merge2D (l, x, r) (a, _, b) = (x, l, r, a, b)
+
+neighbors2D :: Ord a => [[a]] -> [(a, Maybe a, Maybe a, Maybe a, Maybe a)]
+neighbors2D xss = zipWith merge2D horizontals verticals
+  where
+    horizontals = concatMap neighbors xss
+    verticals = L.sortBy cmp . concatMap neighbors . L.transpose $ xss
 
 rights'' :: Ord a => [a] -> Map a (Maybe a)
 rights'' [] = M.empty
