@@ -1,15 +1,16 @@
-module Connect (Mark(..), winner, neighbors2D) where
+module Connect (Mark(..), winner, lefts, rights, lefts'', rights'', neighbors2D) where
 
 import Data.Tuple (swap)
 import Data.Map (Map)
 import qualified Data.Map as M
 import qualified Data.List as L
+import qualified Data.Maybe as MB
 
 data Mark = Cross | Nought deriving (Eq, Show)
 type Board = [String]
 type Player = Char
 
-data Node = Empty | Node Int [Node]
+data Node a = Empty | Node a [Node a]
 
 winner :: [String] -> Maybe Mark
 winner board
@@ -45,13 +46,6 @@ search c rows m (i, j)
 -- One good way to start might be to solve the 1-dimensional case first, where
 -- we have a list and we want to get 3-tuples of each element and its
 -- neighbors.
-build :: [[Char]] -> Node
-build [] = Empty
-build ([] : _) = Empty
-build ((x : xs) : xss) = Empty
-
-build' :: [Char] -> Node
-build' [] = Empty
 
 rights :: [a] -> [(a, a)]
 rights (x : y : rest) = (x, y) : rights (y : rest)
@@ -77,11 +71,11 @@ neighbors xs = zipWith merge (lefts' xs) (rights' xs)
 cmp :: Ord a => (Maybe a, a, Maybe a) -> (Maybe a, a, Maybe a) -> Ordering
 cmp (_, x, _) (_, y, _) = compare x y
 
-merge2D :: (Maybe a, a, Maybe a) -> (Maybe a, a, Maybe a) -> (a, Maybe a, Maybe a, Maybe a, Maybe a)
-merge2D (l, x, r) (a, _, b) = (x, l, r, a, b)
+merge2D :: (Maybe a, a, Maybe a) -> (Maybe a, a, Maybe a) -> (a, [a])
+merge2D (l, x, r) (a, _, b) = (x, MB.catMaybes [l, r, a, b])
 
-neighbors2D :: Ord a => [[a]] -> [(a, Maybe a, Maybe a, Maybe a, Maybe a)]
-neighbors2D xss = zipWith merge2D horizontals verticals
+neighbors2D :: Ord a => [[a]] -> Map a [a]
+neighbors2D xss = M.fromList $ zipWith merge2D horizontals verticals
   where
     horizontals = concatMap neighbors xss
     verticals = L.sortBy cmp . concatMap neighbors . L.transpose $ xss
