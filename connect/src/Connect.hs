@@ -1,6 +1,5 @@
-module Connect (Mark(..), winner, lefts, rights, lefts'', rights'', neighbors2D) where
+module Connect (Mark(..), winner, neighbors2D) where
 
-import Data.Tuple (swap)
 import Data.Map (Map)
 import qualified Data.Map as M
 import qualified Data.List as L
@@ -47,26 +46,19 @@ search c rows m (i, j)
 -- we have a list and we want to get 3-tuples of each element and its
 -- neighbors.
 
-rights :: [a] -> [(a, a)]
-rights (x : y : rest) = (x, y) : rights (y : rest)
-rights _ = []
+rights :: [a] -> [(a, Maybe a)]
+rights [] = []
+rights [x] = [(x, Nothing)]
+rights (x : y : rest) = (x, Just y) : rights (y : rest)
 
-lefts :: [a] -> [(a, a)]
-lefts = map swap . rights
-
-rights' :: [a] -> [(a, Maybe a)]
-rights' [] = []
-rights' [x] = [(x, Nothing)]
-rights' (x : y : rest) = (x, Just y) : rights' (y : rest)
-
-lefts' :: [a] -> [(a, Maybe a)]
-lefts' = reverse . rights' . reverse
+lefts :: [a] -> [(a, Maybe a)]
+lefts = reverse . rights . reverse
 
 merge :: (a, Maybe a) -> (a, Maybe a) -> (Maybe a, a, Maybe a)
 merge (x, l) (_, r) = (l, x, r)
 
 neighbors :: [a] -> [(Maybe a, a, Maybe a)]
-neighbors xs = zipWith merge (lefts' xs) (rights' xs)
+neighbors xs = zipWith merge (lefts xs) (rights xs)
 
 cmp :: Ord a => (Maybe a, a, Maybe a) -> (Maybe a, a, Maybe a) -> Ordering
 cmp (_, x, _) (_, y, _) = compare x y
@@ -79,13 +71,3 @@ neighbors2D xss = M.fromList $ zipWith merge2D horizontals verticals
   where
     horizontals = concatMap neighbors xss
     verticals = L.sortBy cmp . concatMap neighbors . L.transpose $ xss
-
-rights'' :: Ord a => [a] -> Map a (Maybe a)
-rights'' [] = M.empty
-rights'' [x] = M.singleton x Nothing
-rights'' (x : y : rest) = M.insert x (Just y) (rights'' (y : rest))
-
-lefts'' :: Ord a => [a] -> Map a (Maybe a)
-lefts'' [] = M.empty
-lefts'' [x] = M.singleton x Nothing
-lefts'' (x : y : rest) = M.insert x (Just y) (lefts'' (y : rest))
