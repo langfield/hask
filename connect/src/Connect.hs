@@ -46,19 +46,21 @@ search c rows m (i, j)
 -- we have a list and we want to get 3-tuples of each element and its
 -- neighbors.
 
-rights :: [a] -> [(a, Maybe a)]
-rights [] = []
-rights [x] = [(x, Nothing)]
-rights (x : y : rest) = (x, Just y) : rights (y : rest)
+rights :: Eq a => a -> [a] -> [(a, Maybe a)]
+rights _ [] = []
+rights _ [x] = [(x, Nothing)]
+rights c (x : y : rest)
+  | y /= c = (x, Just y) : rights c (y : rest)
+  | otherwise = (x, Nothing) : rights c (y : rest)
 
-lefts :: [a] -> [(a, Maybe a)]
-lefts = reverse . rights . reverse
+lefts :: Eq a => a -> [a] -> [(a, Maybe a)]
+lefts c = reverse . rights c . reverse
 
 merge :: (a, Maybe a) -> (a, Maybe a) -> (Maybe a, a, Maybe a)
 merge (x, l) (_, r) = (l, x, r)
 
-neighbors :: [a] -> [(Maybe a, a, Maybe a)]
-neighbors xs = zipWith merge (lefts xs) (rights xs)
+neighbors :: Eq a => a -> [a] -> [(Maybe a, a, Maybe a)]
+neighbors c xs = zipWith merge (lefts c xs) (rights c xs)
 
 cmp :: Ord a => (Maybe a, a, Maybe a) -> (Maybe a, a, Maybe a) -> Ordering
 cmp (_, x, _) (_, y, _) = compare x y
@@ -66,8 +68,22 @@ cmp (_, x, _) (_, y, _) = compare x y
 merge2D :: (Maybe a, a, Maybe a) -> (Maybe a, a, Maybe a) -> (a, [a])
 merge2D (l, x, r) (a, _, b) = (x, MB.catMaybes [l, r, a, b])
 
-neighbors2D :: Ord a => [[a]] -> Map a [a]
-neighbors2D xss = M.fromList $ zipWith merge2D horizontals verticals
+neighbors2D :: Ord a => a -> [[a]] -> Map a [a]
+neighbors2D c xss = M.fromList $ zipWith merge2D horizontals verticals
   where
-    horizontals = concatMap neighbors xss
-    verticals = L.sortBy cmp . concatMap neighbors . L.transpose $ xss
+    horizontals = concatMap (neighbors c) xss
+    verticals = L.sortBy cmp . concatMap (neighbors c) . L.transpose $ xss
+
+stagger :: Ord a => a -> [[a]] -> [[a]]
+stagger = stagger' 0
+
+stagger' :: Ord a => Int -> a -> [[a]] -> [[a]]
+stagger' _ _ [] = []
+stagger' n c (xs : xss)
+  | n <= 0 = xs : stagger' 1 c xss
+  | otherwise = (prefix ++ xs) : stagger' (n + 1) c xss
+  where
+    prefix = replicate n c
+
+diags :: Ord a => a -> [[a]] -> [(Maybe a, a, Maybe a)]
+diags c = concatMap (neighbors c) . stagger c

@@ -48,12 +48,29 @@ B O . . .
 ```
 
 ```text
-O A . .
-O X O . .
-B O . . .
-. . . . .
-. . . . .
+. O A . .
+- O X O . .
+- - B O . . .
+- - - . . . . .
+- - - - . . . . .
 ```
+
+[ [1,  2, 3, 4]
+, [5,  6, 7, 8]
+, [9, 10,11,12]
+, [13,14,15,16]]
+
+
+Staggered and then transposed.
+
+[ [1,   ,  ,  ]
+, [2,  5,  ,  ]
+, [3,  6, 9,  ]
+, [4,  7,10,13]
+, [8, 11,14]
+, [12,15]
+, [16]
+]
 
 "Player `O`" plays from top to bottom, "Player `X`" plays from left to right. In
 the above example `O` has made a connection from left to right but nobody has
