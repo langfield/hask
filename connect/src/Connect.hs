@@ -1,4 +1,4 @@
-module Connect (Mark(..), winner, neighbors2D) where
+module Connect (Mark(..), winner, hexagons) where
 
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -85,5 +85,17 @@ stagger' n c (xs : xss)
   where
     prefix = replicate n c
 
-diags :: Ord a => a -> [[a]] -> [(Maybe a, a, Maybe a)]
-diags c = concatMap (neighbors c) . stagger c
+diagonals :: Ord a => a -> [[a]] -> [(Maybe a, a, Maybe a)]
+diagonals c = concatMap (neighbors c) . stagger c
+
+listify :: (Maybe a, a, Maybe a) -> (a, [a])
+listify (Just l, x, Just r)   = (x, [l, r])
+listify (Just l, x, Nothing)  = (x, [l])
+listify (Nothing, x, Just r)  = (x, [r])
+listify (Nothing, x, Nothing) = (x, [])
+
+hexagons :: Ord a => a -> [[a]] -> Map a [a]
+hexagons c xss = M.unionWith (++) nbs diags
+  where
+    nbs = neighbors2D c xss
+    diags = M.fromList . map listify . diagonals c $ xss
