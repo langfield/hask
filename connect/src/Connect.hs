@@ -1,7 +1,9 @@
 module Connect (Mark(..), winner, hexagons) where
 
 import Data.Map (Map)
+import Data.Set (Set)
 import qualified Data.Map as M
+import qualified Data.Set as S
 import qualified Data.List as L
 import qualified Data.Maybe as MB
 
@@ -9,34 +11,30 @@ data Mark = Cross | Nought deriving (Eq, Show)
 type Board = [String]
 type Player = Char
 
-data Node a = Empty | Node a [Node a]
+data Hex = X Int Int | O Int Int
+  deriving (Eq, Ord)
 
 winner :: [String] -> Maybe Mark
 winner board
-  | cross = Just Cross
-  | nought = Just Nought
+  | cross     = Just Cross
+  | nought    = Just Nought
   | otherwise = Nothing
   where
-    cross = won 'X' board
+    cross  = won 'X' board
     nought = won 'O' (L.transpose board)
 
--- | Check if `c` has connected top-to-bottom.
+-- | Check if player `c` has connected top-to-bottom.
 --
 -- The easiest way to do this is just to return `True` when we've reached the
 -- last row. This should probably be a simple DFS function, right?
 won :: Player -> Board -> Bool
-won _ [] = False
+won _ []              = False
 won c board@(row : _) = or outcomes
   where
-    m = length board
-    n = length row
-    outcomes = [search c board m (i, j) | i <- [0..m], j <- [0..n]]
-
-search :: Player -> Board -> Int -> (Int, Int) -> Bool
-search _ [] _ _ = True
-search c rows m (i, j)
-  | i == m - 1 = True
-  | otherwise = False
+    m        = length board
+    n        = length row
+    graph    = hexagons board
+    outcomes = [ search c graph m (i, j) | i <- [0 .. m], j <- [0 .. n] ]
 
 -- We essentially want to iterate over something that gives us a 7-tuple, where
 -- we get the current element, and its 6 neighbors. And then we can put them
@@ -47,10 +45,10 @@ search c rows m (i, j)
 -- neighbors.
 
 rights :: Eq a => a -> [a] -> [(a, Maybe a)]
-rights _ [] = []
+rights _ []  = []
 rights _ [x] = [(x, Nothing)]
 rights c (x : y : rest)
-  | y /= c = (x, Just y) : rights c (y : rest)
+  | y /= c    = (x, Just y) : rights c (y : rest)
   | otherwise = (x, Nothing) : rights c (y : rest)
 
 lefts :: Eq a => a -> [a] -> [(a, Maybe a)]
@@ -72,7 +70,7 @@ neighbors2D :: Ord a => a -> [[a]] -> Map a [a]
 neighbors2D c xss = M.fromList $ zipWith merge2D horizontals verticals
   where
     horizontals = concatMap (neighbors c) xss
-    verticals = L.sortBy cmp . concatMap (neighbors c) . L.transpose $ xss
+    verticals   = L.sortBy cmp . concatMap (neighbors c) . L.transpose $ xss
 
 stagger :: Ord a => a -> [[a]] -> [[a]]
 stagger = stagger' 0
@@ -80,22 +78,23 @@ stagger = stagger' 0
 stagger' :: Ord a => Int -> a -> [[a]] -> [[a]]
 stagger' _ _ [] = []
 stagger' n c (xs : xss)
-  | n <= 0 = xs : stagger' 1 c xss
+  | n <= 0    = xs : stagger' 1 c xss
   | otherwise = (prefix ++ xs) : stagger' (n + 1) c xss
-  where
-    prefix = replicate n c
+  where prefix = replicate n c
 
 diagonals :: Ord a => a -> [[a]] -> [(Maybe a, a, Maybe a)]
-diagonals c = concatMap (neighbors c) . stagger c
+diagonals c = concatMap (neighbors c) . L.transpose . stagger c
 
 listify :: (Maybe a, a, Maybe a) -> (a, [a])
-listify (Just l, x, Just r)   = (x, [l, r])
-listify (Just l, x, Nothing)  = (x, [l])
-listify (Nothing, x, Just r)  = (x, [r])
+listify (Just l , x, Just r ) = (x, [l, r])
+listify (Just l , x, Nothing) = (x, [l])
+listify (Nothing, x, Just r ) = (x, [r])
 listify (Nothing, x, Nothing) = (x, [])
 
 hexagons :: Ord a => a -> [[a]] -> Map a [a]
-hexagons c xss = M.unionWith (++) nbs diags
-  where
-    nbs = neighbors2D c xss
-    diags = M.fromList . map listify . diagonals c $ xss
+hexagons c xss = M.delete c
+               . M.unionWith (++) (neighbors2D c xss)
+               . M.fromList
+               . map listify
+               . diagonals c
+               $ xss
