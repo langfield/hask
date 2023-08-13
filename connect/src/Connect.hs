@@ -1,18 +1,29 @@
 module Connect (Mark(..), winner, hexagons) where
 
-import Data.Map (Map)
-import Data.Set (Set)
-import qualified Data.Map as M
-import qualified Data.Set as S
 import qualified Data.List as L
+import Data.Map (Map)
+import qualified Data.Map as M
 import qualified Data.Maybe as MB
+import Data.Set (Set)
+import qualified Data.Set as S
 
 data Mark = Cross | Nought deriving (Eq, Show)
 type Board = [String]
 type Player = Char
 
-data Hex = X Int Int | O Int Int
+data Hex = Null | Empty Int Int | X Int Int | O Int Int
   deriving (Eq, Ord)
+
+coords :: Hex -> (Int, Int)
+coords (Empty x y) = (x, y)
+coords (X     x y) = (x, y)
+coords (O     x y) = (x, y)
+coords Null        = (-1, -1)
+
+player :: Hex -> Player
+player (X _ _) = 'X'
+player (O _ _) = 'O'
+player _ = ' '
 
 winner :: [String] -> Maybe Mark
 winner board
@@ -28,13 +39,23 @@ winner board
 -- The easiest way to do this is just to return `True` when we've reached the
 -- last row. This should probably be a simple DFS function, right?
 won :: Player -> Board -> Bool
-won _ []              = False
-won c board@(row : _) = or outcomes
+won _ []    = False
+won c board = or outcomes
   where
-    m        = length board
-    n        = length row
-    graph    = hexagons board
-    outcomes = [ search c graph m (i, j) | i <- [0 .. m], j <- [0 .. n] ]
+    hexs     = mkhexs board
+    graph    = hexagons Null hexs
+    targets  = S.fromList . map coords . last $ hexs
+    outcomes = [ search c graph targets start S.empty | start <- head hexs ]
+
+search :: Player -> Map Hex [Hex] -> Set (Int, Int) -> Hex -> Set Hex -> Bool
+search c graph targets start visiting
+  | c /= player start = False
+  | coords start `S.member` targets = True
+  | otherwise = case nbs of
+    Just nbs' -> or [ search c graph targets nb (S.insert nb visiting) | nb <- nbs' ]
+    Nothing    -> False
+  where
+    nbs = filter (\nb -> player nb == c) . filter (`S.member` visiting) <$> M.lookup start graph
 
 -- We essentially want to iterate over something that gives us a 7-tuple, where
 -- we get the current element, and its 6 neighbors. And then we can put them
@@ -91,10 +112,24 @@ listify (Just l , x, Nothing) = (x, [l])
 listify (Nothing, x, Just r ) = (x, [r])
 listify (Nothing, x, Nothing) = (x, [])
 
+-- | Map with index of iteration.
+map' :: (Int -> a -> b) -> [a] -> [b]
+map' = go 0
+  where
+    go :: Int -> (Int -> a -> b) -> [a] -> [b]
+    go _ _ []       = []
+    go i f (x : xs) = f i x : go (i + 1) f xs
+
+mkhex :: Int -> Int -> Char -> Hex
+mkhex i j 'X' = X i j
+mkhex i j 'O' = O i j
+mkhex i j _   = Empty i j
+
+mkhexs :: [[Char]] -> [[Hex]]
+mkhexs = map' go
+  where
+    go :: Int -> [Char] -> [Hex]
+    go i = map' (mkhex i)
+
 hexagons :: Ord a => a -> [[a]] -> Map a [a]
-hexagons c xss = M.delete c
-               . M.unionWith (++) (neighbors2D c xss)
-               . M.fromList
-               . map listify
-               . diagonals c
-               $ xss
+hexagons c xss = M.delete c . M.unionWith (++) (neighbors2D c xss) . M.fromList . map listify . diagonals c $ xss
