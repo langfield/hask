@@ -9,21 +9,15 @@ import qualified Data.Set as S
 
 data Mark = Cross | Nought deriving (Eq, Show)
 type Board = [String]
-type Player = Char
+data Player = X | O deriving (Eq, Ord)
 
-data Hex = Null | Empty Int Int | X Int Int | O Int Int
+data Hex = Null | Empty Int Int | XO Player Int Int
   deriving (Eq, Ord)
 
 coords :: Hex -> (Int, Int)
 coords (Empty x y) = (x, y)
-coords (X     x y) = (x, y)
-coords (O     x y) = (x, y)
+coords (XO _ x y ) = (x, y)
 coords Null        = (-1, -1)
-
-player :: Hex -> Player
-player (X _ _) = 'X'
-player (O _ _) = 'O'
-player _ = ' '
 
 winner :: [String] -> Maybe Mark
 winner board
@@ -31,8 +25,8 @@ winner board
   | nought    = Just Nought
   | otherwise = Nothing
   where
-    cross  = won 'X' board
-    nought = won 'O' (L.transpose board)
+    cross  = won X board
+    nought = won O (L.transpose board)
 
 -- | Check if player `c` has connected top-to-bottom.
 --
@@ -47,15 +41,21 @@ won c board = or outcomes
     targets  = S.fromList . map coords . last $ hexs
     outcomes = [ search c graph targets start S.empty | start <- head hexs ]
 
+isPlayer :: Player -> Hex -> Bool
+isPlayer _  Null        = False
+isPlayer _  (Empty _ _) = False
+isPlayer p' (XO p _ _ ) = p == p'
+
 search :: Player -> Map Hex [Hex] -> Set (Int, Int) -> Hex -> Set Hex -> Bool
-search c graph targets start visiting
-  | c /= player start = False
-  | coords start `S.member` targets = True
+search _ _ _ (Empty _ _) _ = False
+search _ _ _ Null        _ = False
+search p' graph targets start@(XO p x y) visiting
+  | p /= p' = False
+  | (x, y) `S.member` targets = True
   | otherwise = case nbs of
-    Just nbs' -> or [ search c graph targets nb (S.insert nb visiting) | nb <- nbs' ]
-    Nothing    -> False
-  where
-    nbs = filter (\nb -> player nb == c) . filter (`S.member` visiting) <$> M.lookup start graph
+    Just nbs' -> or [ search p' graph targets nb (S.insert nb visiting) | nb <- nbs' ]
+    Nothing   -> False
+  where nbs = filter (isPlayer p') . filter (`S.member` visiting) <$> M.lookup start graph
 
 -- We essentially want to iterate over something that gives us a 7-tuple, where
 -- we get the current element, and its 6 neighbors. And then we can put them
