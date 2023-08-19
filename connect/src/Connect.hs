@@ -7,6 +7,11 @@ import qualified Data.Maybe as MB
 import Data.Set (Set)
 import qualified Data.Set as S
 
+import Debug.Trace (trace)
+
+trace' :: Show a => String -> a -> a
+trace' s x = trace (s ++ ": " ++ show x) x
+
 data Mark = Cross | Nought deriving (Eq, Show)
 type Board = [String]
 data Player = X | O deriving (Eq, Ord)
@@ -25,8 +30,8 @@ winner board
   | nought    = Just Nought
   | otherwise = Nothing
   where
-    cross  = won X board
-    nought = won O (L.transpose board)
+    nought = won O board
+    cross  = won X (L.transpose board)
 
 -- | Check if player `c` has connected top-to-bottom.
 --
@@ -121,8 +126,8 @@ map' = go 0
     go i f (x : xs) = f i x : go (i + 1) f xs
 
 mkhex :: Int -> Int -> Char -> Hex
-mkhex i j 'X' = X i j
-mkhex i j 'O' = O i j
+mkhex i j 'X' = XO X i j
+mkhex i j 'O' = XO O i j
 mkhex i j _   = Empty i j
 
 mkhexs :: [[Char]] -> [[Hex]]

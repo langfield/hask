@@ -62,6 +62,15 @@ cases = [ Case { description = "an empty board has no winner"
                                , "    . . O ." ]
                , expected    = Nothing
                }
+        , Case { description = "X wins crossing from left to right (even smaller)"
+               , board       = [ "X X" ]
+               , expected    = Just Cross
+               }
+        , Case { description = "X wins crossing from left to right (smaller)"
+               , board       = [ "  O X X"
+                               , "   X X O" ]
+               , expected    = Just Cross
+               }
         , Case { description = "X wins crossing from left to right"
                , board       = [ ". O . ."
                                , " O X X X"
