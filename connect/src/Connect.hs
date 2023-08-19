@@ -14,10 +14,15 @@ trace' s x = trace (s ++ ": " ++ show x) x
 
 data Mark = Cross | Nought deriving (Eq, Show)
 type Board = [String]
-data Player = X | O deriving (Eq, Ord)
+data Player = X | O deriving (Eq, Ord, Show)
 
 data Hex = Null | Empty Int Int | XO Player Int Int
   deriving (Eq, Ord)
+
+instance Show Hex where
+  show Null = "Null"
+  show (Empty x y) = "Empty(" ++ show x ++ ", " ++ show y ++ ")"
+  show (XO p x y) = show p ++ "(" ++ show x ++ ", " ++ show y ++ ")"
 
 coords :: Hex -> (Int, Int)
 coords (Empty x y) = (x, y)
@@ -30,8 +35,9 @@ winner board
   | nought    = Just Nought
   | otherwise = Nothing
   where
-    nought = won O board
-    cross  = won X (L.transpose board)
+    board' = map (filter (/= ' ')) board
+    nought = won O board'
+    cross  = won X (L.transpose board')
 
 -- | Check if player `c` has connected top-to-bottom.
 --
@@ -41,7 +47,7 @@ won :: Player -> Board -> Bool
 won _ []    = False
 won c board = or outcomes
   where
-    hexs     = mkhexs board
+    hexs     = trace' "hexs" $ mkhexs $ trace' "board" board
     graph    = hexagons Null hexs
     targets  = S.fromList . map coords . last $ hexs
     outcomes = [ search c graph targets start S.empty | start <- head hexs ]
