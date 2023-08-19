@@ -48,7 +48,7 @@ won _ []    = False
 won c board = or outcomes
   where
     hexs     = trace' "hexs" $ mkhexs $ trace' "board" board
-    graph    = hexagons Null hexs
+    graph    = trace' "graph" $ hexagons Null hexs
     targets  = S.fromList . map coords . last $ hexs
     outcomes = [ search c graph targets start S.empty | start <- head hexs ]
 
