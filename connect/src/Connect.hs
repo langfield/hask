@@ -20,19 +20,13 @@ data Hex = Null | Empty Int Int | XO Player Int Int
   deriving (Eq, Ord)
 
 instance Show Hex where
-  show Null = "Null"
+  show Null        = "Null"
   show (Empty x y) = "Empty(" ++ show x ++ ", " ++ show y ++ ")"
-  show (XO p x y) = show p ++ "(" ++ show x ++ ", " ++ show y ++ ")"
-
-coords :: Hex -> (Int, Int)
-coords (Empty x y) = (x, y)
-coords (XO _ x y ) = (x, y)
-coords Null        = (-1, -1)
+  show (XO p x y ) = show p ++ "(" ++ show x ++ ", " ++ show y ++ ")"
 
 winner :: [String] -> Maybe Mark
 winner board
   | cross     = Just Cross
-  | nought    = Just Nought
   | otherwise = Nothing
   where
     board' = map (filter (/= ' ')) board
@@ -48,25 +42,26 @@ won _ []    = False
 won c board = or outcomes
   where
     hexs     = trace' "hexs" $ mkhexs $ trace' "board" board
-    graph    = trace' "graph" $ hexagons Null hexs
-    targets  = S.fromList . map coords . last $ hexs
-    outcomes = [ search c graph targets start S.empty | start <- head hexs ]
+    graph    = hexagons Null hexs
+    starts   = filter (isPlayer c) . head $ hexs
+    targets  = S.fromList . trace' "targets" . filter (isPlayer c) . last $ hexs
+    outcomes = trace' "outcomes" $ [ search (trace' "searching for" c) graph targets start S.empty | start <- starts ]
 
 isPlayer :: Player -> Hex -> Bool
 isPlayer _  Null        = False
 isPlayer _  (Empty _ _) = False
 isPlayer p' (XO p _ _ ) = p == p'
 
-search :: Player -> Map Hex [Hex] -> Set (Int, Int) -> Hex -> Set Hex -> Bool
+search :: Player -> Map Hex [Hex] -> Set Hex -> Hex -> Set Hex -> Bool
 search _ _ _ (Empty _ _) _ = False
 search _ _ _ Null        _ = False
-search p' graph targets start@(XO p x y) visiting
+search p' graph targets start@(XO p _ _) visiting
   | p /= p' = False
-  | (x, y) `S.member` targets = True
-  | otherwise = case nbs of
+  | start `S.member` targets = seq (trace' "found target" start) True
+  | otherwise = case seq (trace' "node and its neighbors" (start, nbs)) nbs of
     Just nbs' -> or [ search p' graph targets nb (S.insert nb visiting) | nb <- nbs' ]
     Nothing   -> False
-  where nbs = filter (isPlayer p') . filter (`S.member` visiting) <$> M.lookup start graph
+  where nbs = filter (isPlayer p') . filter (`S.notMember` visiting) <$> M.lookup start graph
 
 -- We essentially want to iterate over something that gives us a 7-tuple, where
 -- we get the current element, and its 6 neighbors. And then we can put them
