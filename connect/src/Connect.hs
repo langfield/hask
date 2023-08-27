@@ -34,21 +34,17 @@ rights c (x : y : rest)
   | y /= c    = M.insert x [y] (rights c (y : rest))
   | otherwise = M.insert x [] (rights c (y : rest))
 
--- | Left neighbors in a list.
-lefts :: Ord a => a -> [a] -> Map a [a]
-lefts c = rights c . reverse
-
 -- | Left and right neighbors in a list.
 neighbors :: Ord a => a -> [a] -> Map a [a]
 neighbors c xs = M.unionWith (++) (lefts c xs) (rights c xs)
+  where lefts c' = rights c' . reverse
 
 -- | 4-way neighbors in a 2D grid.
 neighbors2D :: Ord a => a -> [[a]] -> Map a [a]
-neighbors2D c xss = M.unionWith (++) horizontals verticals
+neighbors2D c xss = M.unionWith (++) leftrights updowns
   where
-    horizontals = foldr (M.unionWith (++) . neighbors c) M.empty xss
-    verticals =
-      foldr (M.unionWith (++) . neighbors c) M.empty . L.transpose $ xss
+    leftrights = foldr (M.unionWith (++) . neighbors c) M.empty xss
+    updowns = foldr (M.unionWith (++) . neighbors c) M.empty (L.transpose xss)
 
 stagger' :: Ord a => Int -> a -> [[a]] -> [[a]]
 stagger' _ _ [] = []
@@ -57,13 +53,9 @@ stagger' n c (xs : xss)
   | otherwise = (prefix ++ xs) : stagger' (n + 1) c xss
   where prefix = replicate n c
 
+-- | Left-pad each row with `i` copies of the first argument.
 stagger :: Ord a => a -> [[a]] -> [[a]]
 stagger = stagger' 0
-
--- | Top-right and bottom-left neighbors in a 2D grid.
-diagonals :: Ord a => a -> [[a]] -> Map a [a]
-diagonals c =
-  foldr (M.unionWith (++) . neighbors c) M.empty . L.transpose . stagger c
 
 -- | Map with index of iteration.
 map' :: (Int -> a -> b) -> [a] -> [b]
@@ -86,6 +78,11 @@ mkhexs = map' go
     go :: Int -> [Char] -> [Hex]
     go i = map' (mkhex i)
 
+-- | Top-right and bottom-left neighbors in a 2D grid.
+diagonals :: Ord a => a -> [[a]] -> Map a [a]
+diagonals c =
+  foldr (M.unionWith (++) . neighbors c) M.empty . L.transpose . stagger c
+
 -- | Construct graph of hexagonal neighbors from a 2D grid of Hexs.
 --
 -- Note that `c` is used to left-pad rows in `stagger`.
@@ -98,13 +95,13 @@ search :: Player -> Map Hex [Hex] -> Set Hex -> Hex -> Set Hex -> Bool
 search _ _ _ Null        _ = False
 search _ _ _ (Empty _ _) _ = False
 search p' graph targets start@(XO p _ _) visiting
-  | p /= p' = False
+  | p /= p'                  = False
   | start `S.member` targets = True
-  | otherwise = or
-    [ search p' graph targets nb (S.insert nb visiting) | nb <- nbs' ]
+  | otherwise = or [ search p' graph targets nb visiting' | nb <- nbs' ]
   where
-    nbs  = MB.fromMaybe [] (M.lookup start graph)
-    nbs' = filter (isPlayer p') . filter (`S.notMember` visiting) $ nbs
+    visiting' = S.insert start visiting
+    nbs       = MB.fromMaybe [] (M.lookup start graph)
+    nbs'      = filter (isPlayer p') . filter (`S.notMember` visiting') $ nbs
 
 -- | Check if player `c` has connected top-to-bottom.
 won :: Player -> Board -> Bool
