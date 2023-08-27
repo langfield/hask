@@ -1,15 +1,10 @@
 module Connect (Mark(..), winner, hexagons) where
 
-import Data.Map (Map)
-import Data.Set (Set)
 import qualified Data.List as L
+import Data.Map (Map)
 import qualified Data.Map as M
+import Data.Set (Set)
 import qualified Data.Set as S
-
-import Debug.Trace (trace)
-
-trace' :: Show a => String -> a -> a
-trace' s x = trace (s ++ ": " ++ show x) x
 
 data Mark = Cross | Nought deriving (Eq, Show)
 type Board = [String]
@@ -25,30 +20,24 @@ instance Show Hex where
 
 winner :: [String] -> Maybe Mark
 winner board
-  | cross     = Just Cross
+  | won X (L.transpose board') = Just Cross
+  | won O board' = Just Nought
   | otherwise = Nothing
   where
     board' = map (filter (/= ' ')) board
-    nought = won O board'
-    cross  = won X (L.transpose board')
 
 -- | Check if player `c` has connected top-to-bottom.
 --
 -- The easiest way to do this is just to return `True` when we've reached the
 -- last row. This should probably be a simple DFS function, right?
 won :: Player -> Board -> Bool
-won _ []    = False
 won c board = or outcomes
   where
-    hexs    = mkhexs $ trace' "board" board
-    graph   = hexagons Null hexs
-    starts  = filter (isPlayer c) . head $ hexs
-    targets = S.fromList . trace' "targets" . filter (isPlayer c) . last $ hexs
-    outcomes =
-      trace' "outcomes"
-        $ [ search (trace' "searching for" c) graph targets start S.empty
-          | start <- starts
-          ]
+    hexs     = mkhexs board
+    graph    = hexagons Null hexs
+    starts   = filter (isPlayer c) . head $ hexs
+    targets  = S.fromList . filter (isPlayer c) . last $ hexs
+    outcomes = [ search c graph targets start S.empty | start <- starts ]
 
 isPlayer :: Player -> Hex -> Bool
 isPlayer _  Null        = False
@@ -60,8 +49,8 @@ search _ _ _ (Empty _ _) _ = False
 search _ _ _ Null        _ = False
 search p' graph targets start@(XO p _ _) visiting
   | p /= p' = False
-  | start `S.member` targets = seq (trace' "found target" start) True
-  | otherwise = case seq (trace' "node and its neighbors" (start, nbs)) nbs of
+  | start `S.member` targets = seq start True
+  | otherwise = case nbs of
     Just nbs' ->
       or [ search p' graph targets nb (S.insert nb visiting) | nb <- nbs' ]
     Nothing -> False
@@ -96,10 +85,8 @@ neighbors2D :: Ord a => a -> [[a]] -> Map a [a]
 neighbors2D c xss = M.unionWith (++) horizontals verticals
   where
     horizontals = foldr (M.unionWith (++) . neighbors c) M.empty xss
-    verticals   = foldr (M.unionWith (++) . neighbors c) M.empty . L.transpose $ xss
-
-stagger :: Ord a => a -> [[a]] -> [[a]]
-stagger = stagger' 0
+    verticals =
+      foldr (M.unionWith (++) . neighbors c) M.empty . L.transpose $ xss
 
 stagger' :: Ord a => Int -> a -> [[a]] -> [[a]]
 stagger' _ _ [] = []
@@ -108,8 +95,12 @@ stagger' n c (xs : xss)
   | otherwise = (prefix ++ xs) : stagger' (n + 1) c xss
   where prefix = replicate n c
 
+stagger :: Ord a => a -> [[a]] -> [[a]]
+stagger = stagger' 0
+
 diagonals :: Ord a => a -> [[a]] -> Map a [a]
-diagonals c = foldr (M.unionWith (++) . neighbors c) M.empty . L.transpose . stagger c
+diagonals c =
+  foldr (M.unionWith (++) . neighbors c) M.empty . L.transpose . stagger c
 
 -- | Map with index of iteration.
 map' :: (Int -> a -> b) -> [a] -> [b]
@@ -132,7 +123,4 @@ mkhexs = map' go
 
 hexagons :: Hex -> [[Hex]] -> Map Hex [Hex]
 hexagons c xss =
-  M.delete c
-    . M.unionWith (++) (trace' "neighbors 2D" $ neighbors2D c xss)
-    . diagonals c
-    $ xss
+  M.delete c . M.unionWith (++) (neighbors2D c xss) . diagonals c $ xss
