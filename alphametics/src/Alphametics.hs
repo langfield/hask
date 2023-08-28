@@ -1,58 +1,63 @@
 module Alphametics (solve) where
 
-import Data.List.NonEmpty (NonEmpty (..))
+import Control.Arrow (second)
 import qualified Data.Char as C
 import qualified Data.List as L
 
-data Operator = Plus | Times | Power
-  deriving (Show)
-
-data TTree = TLeaf String | TTree Operator TTree TTree
-  deriving (Show)
-
-data TEquation = TE TTree String
+data Op = Plus | Times | Power
   deriving Show
 
-data VTree = VLeaf Int | VTree Operator VTree VTree
-  deriving (Show)
+-- Symbolic atoms and infix binary operators.
+data SymbolicExpr = Token String | SymbolicInfix Op SymbolicExpr SymbolicExpr
+  deriving Show
 
-data VEquation = VE VTree Int
+-- LHS (an expression) and RHS (just a single token/symbol).
+data SymbolicEquation = SymbolicEquation SymbolicExpr String
+  deriving Show
+
+-- Integral atoms and infix binary operators.
+data NumericalExpr = Atom Int | NumericalInfix Op NumericalExpr NumericalExpr
+  deriving Show
+
+data VEquation = VE NumericalExpr Int
   deriving Show
 
 type Combination = [(Char, Int)]
 
-calculateExpression :: Operator -> Int -> Int -> Int
+calculateExpression :: Op -> Int -> Int -> Int
 calculateExpression Plus  v1 v2 = v1 + v2
 calculateExpression Times v1 v2 = v1 * v2
 calculateExpression Power v1 v2 = v1 ^ v2
 
-calculateTree :: VTree -> Int
-calculateTree (VLeaf n      ) = n
-calculateTree (VTree o t1 t2) = calculateExpression o (calculateTree t1) (calculateTree t2)
+calculateTree :: NumericalExpr -> Int
+calculateTree (Atom n) = n
+calculateTree (NumericalInfix o t1 t2) =
+  calculateExpression o (calculateTree t1) (calculateTree t2)
 
 equationMatches :: VEquation -> Bool
 equationMatches (VE t n) = calculateTree t == n
 
-convertToValueEquation :: TEquation -> Combination -> Maybe VEquation
+convertToValueEquation :: SymbolicEquation -> Combination -> Maybe VEquation
 convertToValueEquation e c = convert e
   where
-    convert (TE t s) = do
+    convert (SymbolicEquation t s) = do
       n  <- numberForString s c
       vt <- convertToValueTree t c
       return (VE vt n)
 
-convertToValueTree :: TTree -> Combination -> Maybe VTree
+convertToValueTree :: SymbolicExpr -> Combination -> Maybe NumericalExpr
 convertToValueTree t c = convert t
   where
-    convert :: TTree -> Maybe VTree
-    convert (TLeaf s      ) = fmap VLeaf (numberForString s c)
-    convert (TTree o t1 t2) = do
+    convert :: SymbolicExpr -> Maybe NumericalExpr
+    convert (Token s       ) = fmap Atom (numberForString s c)
+    convert (SymbolicInfix o t1 t2) = do
       v1 <- convertToValueTree t1 c
       v2 <- convertToValueTree t2 c
-      return (VTree o v1 v2)
+      return (NumericalInfix o v1 v2)
 
 numberForString :: String -> Combination -> Maybe Int
-numberForString s c = digitsToNumber <$> noNumberStartingWith0 (digitsForString s c)
+numberForString s c = digitsToNumber
+  <$> noNumberStartingWith0 (digitsForString s c)
   where
     noNumberStartingWith0 (0 : _) = Nothing
     noNumberStartingWith0 xs      = Just xs
@@ -62,7 +67,9 @@ digitsForString s c = map digitForChar s
   where
     digitForChar i = case lookup i c of
       Just v  -> v
-      Nothing -> if C.isNumber i then C.digitToInt i else error ("char " ++ show i ++ " not found in " ++ show c)
+      Nothing -> if C.isNumber i
+        then C.digitToInt i
+        else error ("char " ++ show i ++ " not found in " ++ show c)
 
 digitsToNumber :: [Int] -> Int
 digitsToNumber = foldr (\x s -> x + s * 10) 0 . reverse
@@ -75,21 +82,14 @@ generateCombinations n = go n [0 .. 9] []
       | k == 0    = [c]
       | otherwise = concatMap (\x -> go (k - 1) (L.delete x xs) (x : c)) xs
 
-testCombination :: TEquation -> Combination -> Bool
+testCombination :: SymbolicEquation -> Combination -> Bool
 testCombination e c = maybe False equationMatches (convertToValueEquation e c)
 
-testCombinations :: TEquation -> [Char] -> Maybe Combination
+testCombinations :: SymbolicEquation -> [Char] -> Maybe Combination
 testCombinations e ls = L.find (testCombination e) combinations
   where
     combinations = map combination $ generateCombinations (length ls)
     combination  = zip ls
-
-parse :: String -> Maybe TEquation
-parse s = Just (TE (parseTree ts) r)
-  where
-    (ts, r) = (sides . words) s
-    sides   = removeEqual . break (== "==")
-    removeEqual (hs, us) = (hs, last us)
 
 -- | This would be better replaced by something which does the opposite of intercalate.
 splitOp :: String -> [String] -> Maybe ([String], [String])
@@ -97,29 +97,27 @@ splitOp op xs = case break (== op) xs of
   (_ , []) -> Nothing
   (hs, ts) -> Just (hs, tail ts)
 
-parseTree :: [String] -> TTree
+parseTreeRec :: [String] -> [String] -> SymbolicExpr
+parseTreeRec ops xs
+  | length xs == 1 = Token (head xs)
+  | otherwise = case splitOp currentOp xs of
+    Just (hs, ts) ->
+      SymbolicInfix (toOp currentOp) (parseTreeRec ops hs) (parseTreeRec ops ts)
+    _ -> parseTreeRec (tail ops) xs
+  where currentOp = head ops
+
+parseTree :: [String] -> SymbolicExpr
 parseTree = parseTreeRec ["+", "*", "^"]
 
-parseTreeRec :: [String] -> [String] -> TTree
-parseTreeRec ops xs
-  | length xs == 1 = TLeaf (head xs)
-  | otherwise = case splitOp currentOp xs of
-    Just (hs, ts) -> TTree (toOperator currentOp) (parseTreeRec ops hs) (parseTreeRec ops ts)
-    _             -> parseTreeRec (tail ops) xs
-  where currentOp = head ops
+parse :: String -> Maybe SymbolicEquation
+parse s = Just (SymbolicEquation (parseTree lhs) rhs)
+  where (lhs, rhs) = (second last . break (== "==") . words) s
 
-parseTreeRec' :: [String] -> NonEmpty String -> TTree
-parseTreeRec' ops (x :| []) = TLeaf x
-parseTreeRec' ops (x :| xs) =
-  case splitOp currentOp (x : xs) of
-    _ -> TLeaf x
-  where currentOp = head ops
-
-toOperator :: String -> Operator
-toOperator "+" = Plus
-toOperator "*" = Times
-toOperator "^" = Power
-toOperator _   = error "Bad operator"
+toOp :: String -> Op
+toOp "+" = Plus
+toOp "*" = Times
+toOp "^" = Power
+toOp _   = error "Bad operator"
 
 letters :: String -> [Char]
 letters = L.nub . filter C.isUpper
