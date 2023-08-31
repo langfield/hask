@@ -94,6 +94,12 @@ testCombinations e ls = L.find (testCombination e) combinations
     combinations = map combination $ generateCombinations (length ls)
     combination  = zip ls
 
+-- TODO: Memorize this function.
+splitOn :: Eq a => a -> [a] -> [[a]]
+splitOn c xs = case dropWhile (== c) xs of
+  []  -> []
+  xs' -> prefix : splitOn c suffix where (prefix, suffix) = break (== c) xs'
+
 -- | This would be better replaced by something which does the opposite of intercalate.
 splitOp :: String -> [String] -> Maybe ([String], [String])
 splitOp op xs = case break (== op) xs of
