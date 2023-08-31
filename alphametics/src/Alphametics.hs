@@ -8,7 +8,7 @@ data Op = Plus | Times | Power
   deriving Show
 
 -- Symbolic atoms and infix binary operators.
-data SymbolicExpr = Token String | SymbolicInfix Op SymbolicExpr SymbolicExpr
+data SymbolicExpr = Symbol String | SymbolicInfix Op SymbolicExpr SymbolicExpr
   deriving Show
 
 -- LHS (an expression) and RHS (just a single token/symbol).
@@ -19,7 +19,8 @@ data SymbolicEquation = SymbolicEquation SymbolicExpr String
 data NumericalExpr = Atom Int | NumericalInfix Op NumericalExpr NumericalExpr
   deriving Show
 
-data VEquation = VE NumericalExpr Int
+-- LHS (an expression) and RHS (an integer).
+data NumericalEquation = NumericalEquation NumericalExpr Int
   deriving Show
 
 type Combination = [(Char, Int)]
@@ -34,22 +35,24 @@ calculateTree (Atom n) = n
 calculateTree (NumericalInfix o t1 t2) =
   calculateExpression o (calculateTree t1) (calculateTree t2)
 
-equationMatches :: VEquation -> Bool
-equationMatches (VE t n) = calculateTree t == n
+equationMatches :: NumericalEquation -> Bool
+equationMatches (NumericalEquation t n) = calculateTree t == n
 
-convertToValueEquation :: SymbolicEquation -> Combination -> Maybe VEquation
+convertToValueEquation :: SymbolicEquation
+                       -> Combination
+                       -> Maybe NumericalEquation
 convertToValueEquation e c = convert e
   where
     convert (SymbolicEquation t s) = do
       n  <- numberForString s c
       vt <- convertToValueTree t c
-      return (VE vt n)
+      return (NumericalEquation vt n)
 
 convertToValueTree :: SymbolicExpr -> Combination -> Maybe NumericalExpr
 convertToValueTree t c = convert t
   where
     convert :: SymbolicExpr -> Maybe NumericalExpr
-    convert (Token s       ) = fmap Atom (numberForString s c)
+    convert (Symbol s              ) = fmap Atom (numberForString s c)
     convert (SymbolicInfix o t1 t2) = do
       v1 <- convertToValueTree t1 c
       v2 <- convertToValueTree t2 c
@@ -99,7 +102,7 @@ splitOp op xs = case break (== op) xs of
 
 parseTreeRec :: [String] -> [String] -> SymbolicExpr
 parseTreeRec ops xs
-  | length xs == 1 = Token (head xs)
+  | length xs == 1 = Symbol (head xs)
   | otherwise = case splitOp currentOp xs of
     Just (hs, ts) ->
       SymbolicInfix (toOp currentOp) (parseTreeRec ops hs) (parseTreeRec ops ts)
