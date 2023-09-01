@@ -94,7 +94,6 @@ testCombinations e ls = L.find (testCombination e) combinations
     combinations = map combination $ generateCombinations (length ls)
     combination  = zip ls
 
--- TODO: Memorize this function.
 splitOn :: Eq a => a -> [a] -> [[a]]
 splitOn c xs = case dropWhile (== c) xs of
   []  -> []
@@ -106,20 +105,19 @@ splitOp op xs = case break (== op) xs of
   (_ , []) -> Nothing
   (hs, ts) -> Just (hs, tail ts)
 
-parseTreeRec :: [String] -> [String] -> SymbolicExpr
-parseTreeRec ops xs
+-- | Given a list of infix operations in reverse order of precedence and a list
+-- of space-delimited tokens, build a symbolic expression.
+parseTree :: [String] -> [String] -> SymbolicExpr
+parseTree ops xs
   | length xs == 1 = Symbol (head xs)
   | otherwise = case splitOp currentOp xs of
     Just (hs, ts) ->
-      SymbolicInfix (toOp currentOp) (parseTreeRec ops hs) (parseTreeRec ops ts)
-    _ -> parseTreeRec (tail ops) xs
+      SymbolicInfix (toOp currentOp) (parseTree ops hs) (parseTree ops ts)
+    _ -> parseTree (tail ops) xs
   where currentOp = head ops
 
-parseTree :: [String] -> SymbolicExpr
-parseTree = parseTreeRec ["+", "*", "^"]
-
 parse :: String -> Maybe SymbolicEquation
-parse s = Just (SymbolicEquation (parseTree lhs) rhs)
+parse s = Just (SymbolicEquation (parseTree ["+", "*", "^"] lhs) rhs)
   where (lhs, rhs) = (second last . break (== "==") . words) s
 
 toOp :: String -> Op
