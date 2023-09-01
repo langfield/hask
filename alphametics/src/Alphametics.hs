@@ -5,7 +5,11 @@ import qualified Data.Char as C
 import qualified Data.List as L
 
 data Op = Plus | Times | Power
-  deriving Show
+
+instance Show Op where
+  show Plus  = "+"
+  show Times = "*"
+  show Power = "^"
 
 -- Symbolic atoms and infix binary operators.
 data SymbolicExpr = Symbol String | SymbolicInfix Op SymbolicExpr SymbolicExpr
@@ -52,7 +56,7 @@ convertToValueTree :: SymbolicExpr -> Combination -> Maybe NumericalExpr
 convertToValueTree t c = convert t
   where
     convert :: SymbolicExpr -> Maybe NumericalExpr
-    convert (Symbol s              ) = fmap Atom (numberForString s c)
+    convert (Symbol s             ) = fmap Atom (numberForString s c)
     convert (SymbolicInfix o t1 t2) = do
       v1 <- convertToValueTree t1 c
       v2 <- convertToValueTree t2 c
@@ -99,32 +103,22 @@ splitOn c xs = case dropWhile (== c) xs of
   []  -> []
   xs' -> prefix : splitOn c suffix where (prefix, suffix) = break (== c) xs'
 
--- | This would be better replaced by something which does the opposite of intercalate.
-splitOp :: String -> [String] -> Maybe ([String], [String])
-splitOp op xs = case break (== op) xs of
-  (_ , []) -> Nothing
-  (hs, ts) -> Just (hs, tail ts)
-
 -- | Given a list of infix operations in reverse order of precedence and a list
 -- of space-delimited tokens, build a symbolic expression.
-parseTree :: [String] -> [String] -> SymbolicExpr
-parseTree ops xs
-  | length xs == 1 = Symbol (head xs)
-  | otherwise = case splitOp currentOp xs of
-    Just (hs, ts) ->
-      SymbolicInfix (toOp currentOp) (parseTree ops hs) (parseTree ops ts)
-    _ -> parseTree (tail ops) xs
-  where currentOp = head ops
+parseTree :: [Op] -> [String] -> Maybe SymbolicExpr
+parseTree [] [x] = Just (Symbol x)
+parseTree [] _   = Nothing
+parseTree (op : ops) xs =
+  treeify op =<< (mapM (parseTree ops) . splitOn (show op) $ xs)
+
+treeify :: Op -> [SymbolicExpr] -> Maybe SymbolicExpr
+treeify _  []       = Nothing
+treeify _  [x     ] = Just x
+treeify op (x : xs) = SymbolicInfix op x <$> treeify op xs
 
 parse :: String -> Maybe SymbolicEquation
-parse s = Just (SymbolicEquation (parseTree ["+", "*", "^"] lhs) rhs)
+parse s = SymbolicEquation <$> parseTree [Plus, Times, Power] lhs <*> Just rhs
   where (lhs, rhs) = (second last . break (== "==") . words) s
-
-toOp :: String -> Op
-toOp "+" = Plus
-toOp "*" = Times
-toOp "^" = Power
-toOp _   = error "Bad operator"
 
 letters :: String -> [Char]
 letters = L.nub . filter C.isUpper
