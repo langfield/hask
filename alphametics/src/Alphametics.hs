@@ -27,60 +27,49 @@ data NumericalExpr = Atom Int | NumericalInfix Op NumericalExpr NumericalExpr
 data NumericalEquation = NumericalEquation NumericalExpr Int
   deriving Show
 
-type Combination = [(Char, Int)]
+type LetterMap = [(Char, Int)]
 
-calculateExpression :: Op -> Int -> Int -> Int
-calculateExpression Plus  v1 v2 = v1 + v2
-calculateExpression Times v1 v2 = v1 * v2
-calculateExpression Power v1 v2 = v1 ^ v2
-
-calculateTree :: NumericalExpr -> Int
-calculateTree (Atom n) = n
-calculateTree (NumericalInfix o t1 t2) =
-  calculateExpression o (calculateTree t1) (calculateTree t2)
+eval :: NumericalExpr -> Int
+eval (Atom n                  ) = n
+eval (NumericalInfix Plus  x y) = eval x + eval y
+eval (NumericalInfix Times x y) = eval x * eval y
+eval (NumericalInfix Power x y) = eval x ^ eval y
 
 equationMatches :: NumericalEquation -> Bool
-equationMatches (NumericalEquation t n) = calculateTree t == n
+equationMatches (NumericalEquation lhs rhs) = eval lhs == rhs
 
-convertToValueEquation :: SymbolicEquation
-                       -> Combination
-                       -> Maybe NumericalEquation
-convertToValueEquation e c = convert e
-  where
-    convert (SymbolicEquation t s) = do
-      n  <- numberForString s c
-      vt <- convertToValueTree t c
-      return (NumericalEquation vt n)
+substituteEqn :: SymbolicEquation -> LetterMap -> Maybe NumericalEquation
+substituteEqn (SymbolicEquation lhs rhs) mapping =
+  NumericalEquation
+    <$> substituteExpr lhs mapping
+    <*> numberForString rhs mapping
 
-convertToValueTree :: SymbolicExpr -> Combination -> Maybe NumericalExpr
-convertToValueTree t c = convert t
-  where
-    convert :: SymbolicExpr -> Maybe NumericalExpr
-    convert (Symbol s             ) = fmap Atom (numberForString s c)
-    convert (SymbolicInfix o t1 t2) = do
-      v1 <- convertToValueTree t1 c
-      v2 <- convertToValueTree t2 c
-      return (NumericalInfix o v1 v2)
+substituteExpr :: SymbolicExpr -> LetterMap -> Maybe NumericalExpr
+substituteExpr (Symbol s) mapping = Atom <$> numberForString s mapping
+substituteExpr (SymbolicInfix op x y) mapping =
+  NumericalInfix op <$> substituteExpr x mapping <*> substituteExpr y mapping
 
-numberForString :: String -> Combination -> Maybe Int
-numberForString s c = digitsToNumber
-  <$> noNumberStartingWith0 (digitsForString s c)
-  where
-    noNumberStartingWith0 (0 : _) = Nothing
-    noNumberStartingWith0 xs      = Just xs
+numberForString :: String -> LetterMap -> Maybe Int
+numberForString s mapping = case digitsForString s mapping of
+  0 : _  -> Nothing
+  digits -> Just (digitsToNumber digits)
 
-digitsForString :: String -> Combination -> [Int]
-digitsForString s c = map digitForChar s
+digitsForString :: String -> LetterMap -> [Int]
+digitsForString s mapping = map digitForChar s
   where
-    digitForChar i = case lookup i c of
+    digitForChar i = case lookup i mapping of
       Just v  -> v
       Nothing -> if C.isNumber i
         then C.digitToInt i
-        else error ("char " ++ show i ++ " not found in " ++ show c)
+        else error ("char " ++ show i ++ " not found in " ++ show mapping)
 
 digitsToNumber :: [Int] -> Int
 digitsToNumber = foldr (\x s -> x + s * 10) 0 . reverse
 
+isSolution :: SymbolicEquation -> LetterMap -> Bool
+isSolution eqn = maybe False equationMatches . substituteEqn eqn
+
+-- | Generate combinations of length n of digits [0..9].
 generateCombinations :: Int -> [[Int]]
 generateCombinations n = go n [0 .. 9] []
   where
@@ -89,14 +78,13 @@ generateCombinations n = go n [0 .. 9] []
       | k == 0    = [c]
       | otherwise = concatMap (\x -> go (k - 1) (L.delete x xs) (x : c)) xs
 
-testCombination :: SymbolicEquation -> Combination -> Bool
-testCombination e c = maybe False equationMatches (convertToValueEquation e c)
-
-testCombinations :: SymbolicEquation -> [Char] -> Maybe Combination
-testCombinations e ls = L.find (testCombination e) combinations
-  where
-    combinations = map combination $ generateCombinations (length ls)
-    combination  = zip ls
+findSolution :: SymbolicEquation -> [Char] -> Maybe LetterMap
+findSolution eqn letters =
+  L.find (isSolution eqn)
+    . map (zip letters)
+    . generateCombinations
+    . length
+    $ letters
 
 splitOn :: Eq a => a -> [a] -> [[a]]
 splitOn c xs = case dropWhile (== c) xs of
@@ -120,10 +108,7 @@ parse :: String -> Maybe SymbolicEquation
 parse s = SymbolicEquation <$> parseTree [Plus, Times, Power] lhs <*> Just rhs
   where (lhs, rhs) = (second last . break (== "==") . words) s
 
-letters :: String -> [Char]
-letters = L.nub . filter C.isUpper
-
-solve :: String -> Maybe Combination
+solve :: String -> Maybe LetterMap
 solve puzzle = do
-  e <- parse puzzle
-  testCombinations e (letters puzzle)
+  eqn <- parse puzzle
+  findSolution eqn . L.nub . filter C.isUpper $ puzzle
