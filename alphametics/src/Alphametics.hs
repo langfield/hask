@@ -57,11 +57,12 @@ numberForString s mapping = case digitsForString s mapping of
 digitsForString :: String -> LetterMap -> [Int]
 digitsForString s mapping = map digitForChar s
   where
-    digitForChar i = case lookup i mapping of
+    digitForChar :: Char -> Int
+    digitForChar c = case lookup c mapping of
       Just v  -> v
-      Nothing -> if C.isNumber i
-        then C.digitToInt i
-        else error ("char " ++ show i ++ " not found in " ++ show mapping)
+      Nothing -> if C.isNumber c
+        then C.digitToInt c
+        else error ("char " ++ show c ++ " not found in " ++ show mapping)
 
 digitsToNumber :: [Int] -> Int
 digitsToNumber = foldr (\x s -> x + s * 10) 0 . reverse
