@@ -42,30 +42,35 @@ substituteEqn :: SymbolicEquation -> LetterMap -> Maybe NumericalEquation
 substituteEqn (SymbolicEquation lhs rhs) mapping =
   NumericalEquation
     <$> substituteExpr lhs mapping
-    <*> numberForString rhs mapping
+    <*> encodeWord mapping rhs
 
 substituteExpr :: SymbolicExpr -> LetterMap -> Maybe NumericalExpr
-substituteExpr (Symbol s) mapping = Atom <$> numberForString s mapping
+substituteExpr (Symbol s) mapping = Atom <$> encodeWord mapping s
 substituteExpr (SymbolicInfix op x y) mapping =
   NumericalInfix op <$> substituteExpr x mapping <*> substituteExpr y mapping
 
-numberForString :: String -> LetterMap -> Maybe Int
-numberForString s mapping = case digitsForString s mapping of
-  0 : _  -> Nothing
-  digits -> Just (digitsToNumber digits)
-
-digitsForString :: String -> LetterMap -> [Int]
-digitsForString s mapping = map digitForChar s
+-- 1. Map letters to digits ([Char] -> [Int])
+-- 2. Validate, i.e. make sure no leading zeroes ([Int] -> Maybe [Int])
+-- 3. Reduce to a single Int (Maybe [Int] -> Maybe Int)
+encodeWord :: LetterMap -> String -> Maybe Int
+encodeWord mapping = fmap intify . validateDigits . toDigits
   where
-    digitForChar :: Char -> Int
-    digitForChar c = case lookup c mapping of
-      Just v  -> v
-      Nothing -> if C.isNumber c
-        then C.digitToInt c
-        else error ("char " ++ show c ++ " not found in " ++ show mapping)
+    toDigits :: [Char] -> [Int]
+    toDigits = map (toDigit mapping)
 
-digitsToNumber :: [Int] -> Int
-digitsToNumber = foldr (\x s -> x + s * 10) 0 . reverse
+    validateDigits :: [Int] -> Maybe [Int]
+    validateDigits (0:_) = Nothing
+    validateDigits xs = Just xs
+
+    intify :: [Int] -> Int
+    intify = foldr (\x s -> x + s * 10) 0 . reverse
+
+toDigit :: LetterMap -> Char -> Int
+toDigit mapping c = case lookup c mapping of
+  Just v  -> v
+  Nothing -> if C.isNumber c
+    then C.digitToInt c
+    else error ("char " ++ show c ++ " not found in " ++ show mapping)
 
 isSolution :: SymbolicEquation -> LetterMap -> Bool
 isSolution eqn = maybe False equationMatches . substituteEqn eqn
