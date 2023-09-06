@@ -53,24 +53,24 @@ substituteExpr (SymbolicInfix op x y) mapping =
 -- 2. Validate, i.e. make sure no leading zeroes ([Int] -> Maybe [Int])
 -- 3. Reduce to a single Int (Maybe [Int] -> Maybe Int)
 encodeWord :: LetterMap -> String -> Maybe Int
-encodeWord mapping = fmap intify . validateDigits . toDigits
+encodeWord mapping s = intify <$> (validateDigits =<< toDigits s)
   where
-    toDigits :: [Char] -> [Int]
-    toDigits = map (toDigit mapping)
+    toDigits :: [Char] -> Maybe [Int]
+    toDigits = mapM (toDigit mapping)
 
     validateDigits :: [Int] -> Maybe [Int]
     validateDigits (0:_) = Nothing
     validateDigits xs = Just xs
 
     intify :: [Int] -> Int
-    intify = foldr (\x s -> x + s * 10) 0 . reverse
+    intify = foldr (\x acc -> x + acc * 10) 0 . reverse
 
-toDigit :: LetterMap -> Char -> Int
+toDigit :: LetterMap -> Char -> Maybe Int
 toDigit mapping c = case lookup c mapping of
-  Just v  -> v
+  Just x -> Just x
   Nothing -> if C.isNumber c
-    then C.digitToInt c
-    else error ("char " ++ show c ++ " not found in " ++ show mapping)
+    then Just (C.digitToInt c)
+    else Nothing
 
 isSolution :: SymbolicEquation -> LetterMap -> Bool
 isSolution eqn = maybe False equationMatches . substituteEqn eqn
