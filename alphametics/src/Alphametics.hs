@@ -47,29 +47,26 @@ substituteExpr (Symbol s) mapping = Atom <$> encodeWord mapping s
 substituteExpr (SymbolicInfix op x y) mapping =
   NumericalInfix op <$> substituteExpr x mapping <*> substituteExpr y mapping
 
--- 1. Map letters to digits ([Char] -> [Int])
--- 2. Validate, i.e. make sure no leading zeroes ([Int] -> Maybe [Int])
--- 3. Reduce to a single Int (Maybe [Int] -> Maybe Int)
-encodeWord :: LetterMap -> String -> Maybe Int
-encodeWord mapping s = intify <$> (validateDigits =<< toDigits s)
-  where
-    toDigits :: [Char] -> Maybe [Int]
-    toDigits = mapM (toDigit mapping)
-
-    validateDigits :: [Int] -> Maybe [Int]
-    validateDigits (0 : _) = Nothing
-    validateDigits xs      = Just xs
-
-    intify :: [Int] -> Int
-    intify = foldr (\x acc -> x + acc * 10) 0 . reverse
-
 toDigit :: LetterMap -> Char -> Maybe Int
 toDigit mapping c
   | C.isNumber c = Just (C.digitToInt c)
   | otherwise    = lookup c mapping
 
-isSolution :: SymbolicEquation -> LetterMap -> Bool
-isSolution eqn = maybe False equationMatches . substituteEqn eqn
+toDigits :: LetterMap -> [Char] -> Maybe [Int]
+toDigits mapping = mapM (toDigit mapping)
+
+validateDigits :: [Int] -> Maybe [Int]
+validateDigits (0 : _) = Nothing
+validateDigits xs      = Just xs
+
+intify :: [Int] -> Int
+intify = foldr (\x acc -> x + acc * 10) 0 . reverse
+
+-- 1. Map letters to digits ([Char] -> [Int])
+-- 2. Validate, i.e. make sure no leading zeroes ([Int] -> Maybe [Int])
+-- 3. Reduce to a single Int (Maybe [Int] -> Maybe Int)
+encodeWord :: LetterMap -> String -> Maybe Int
+encodeWord mapping s = intify <$> (validateDigits =<< toDigits mapping s)
 
 -- | Generate combinations of length n of digits [0..9].
 generateCombinations :: Int -> [[Int]]
@@ -79,6 +76,9 @@ generateCombinations n = go n [0 .. 9] []
     go k xs c
       | k == 0    = [c]
       | otherwise = concatMap (\x -> go (k - 1) (L.delete x xs) (x : c)) xs
+
+isSolution :: SymbolicEquation -> LetterMap -> Bool
+isSolution eqn = maybe False equationMatches . substituteEqn eqn
 
 findSolution :: SymbolicEquation -> [Char] -> Maybe LetterMap
 findSolution eqn letters =
