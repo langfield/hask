@@ -20,32 +20,32 @@ data SymbolicEquation = SymbolicEquation SymbolicExpr String
   deriving Show
 
 -- Integral atoms and infix binary operators.
-data NumericalExpr = Atom Int | NumericalInfix Op NumericalExpr NumericalExpr
+data NumericExpr = Atom Int | NumericInfix Op NumericExpr NumericExpr
   deriving Show
 
 -- LHS (an expression) and RHS (an integer).
-data NumericalEquation = NumericalEquation NumericalExpr Int
+data NumericEquation = NumericEquation NumericExpr Int
   deriving Show
 
 type LetterMap = [(Char, Int)]
 
-eval :: NumericalExpr -> Int
+eval :: NumericExpr -> Int
 eval (Atom n                  ) = n
-eval (NumericalInfix Plus  x y) = eval x + eval y
-eval (NumericalInfix Times x y) = eval x * eval y
-eval (NumericalInfix Power x y) = eval x ^ eval y
+eval (NumericInfix Plus  x y) = eval x + eval y
+eval (NumericInfix Times x y) = eval x * eval y
+eval (NumericInfix Power x y) = eval x ^ eval y
 
-equationMatches :: NumericalEquation -> Bool
-equationMatches (NumericalEquation lhs rhs) = eval lhs == rhs
+equationMatches :: NumericEquation -> Bool
+equationMatches (NumericEquation lhs rhs) = eval lhs == rhs
 
-substituteEqn :: SymbolicEquation -> LetterMap -> Maybe NumericalEquation
+substituteEqn :: SymbolicEquation -> LetterMap -> Maybe NumericEquation
 substituteEqn (SymbolicEquation lhs rhs) mapping =
-  NumericalEquation <$> substituteExpr lhs mapping <*> encodeWord mapping rhs
+  NumericEquation <$> substituteExpr lhs mapping <*> encodeWord mapping rhs
 
-substituteExpr :: SymbolicExpr -> LetterMap -> Maybe NumericalExpr
+substituteExpr :: SymbolicExpr -> LetterMap -> Maybe NumericExpr
 substituteExpr (Symbol s) mapping = Atom <$> encodeWord mapping s
 substituteExpr (SymbolicInfix op x y) mapping =
-  NumericalInfix op <$> substituteExpr x mapping <*> substituteExpr y mapping
+  NumericInfix op <$> substituteExpr x mapping <*> substituteExpr y mapping
 
 toDigit :: LetterMap -> Char -> Maybe Int
 toDigit mapping c
@@ -80,8 +80,8 @@ generateCombinations n = go n [0 .. 9] []
 isSolution :: SymbolicEquation -> LetterMap -> Bool
 isSolution eqn = maybe False equationMatches . substituteEqn eqn
 
-findSolution :: SymbolicEquation -> [Char] -> Maybe LetterMap
-findSolution eqn letters =
+findSolution :: [Char] -> SymbolicEquation -> Maybe LetterMap
+findSolution letters eqn =
   L.find (isSolution eqn)
     . map (zip letters)
     . generateCombinations
@@ -111,6 +111,5 @@ parse s = SymbolicEquation <$> parseTree [Plus, Times, Power] lhs <*> Just rhs
   where (lhs, rhs) = (second last . break (== "==") . words) s
 
 solve :: String -> Maybe LetterMap
-solve puzzle = do
-  eqn <- parse puzzle
-  findSolution eqn . L.nub . filter C.isUpper $ puzzle
+solve puzzle =
+  findSolution (L.nub . filter C.isUpper $ puzzle) =<< parse puzzle
