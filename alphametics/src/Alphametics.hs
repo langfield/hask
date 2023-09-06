@@ -40,9 +40,7 @@ equationMatches (NumericalEquation lhs rhs) = eval lhs == rhs
 
 substituteEqn :: SymbolicEquation -> LetterMap -> Maybe NumericalEquation
 substituteEqn (SymbolicEquation lhs rhs) mapping =
-  NumericalEquation
-    <$> substituteExpr lhs mapping
-    <*> encodeWord mapping rhs
+  NumericalEquation <$> substituteExpr lhs mapping <*> encodeWord mapping rhs
 
 substituteExpr :: SymbolicExpr -> LetterMap -> Maybe NumericalExpr
 substituteExpr (Symbol s) mapping = Atom <$> encodeWord mapping s
@@ -59,18 +57,16 @@ encodeWord mapping s = intify <$> (validateDigits =<< toDigits s)
     toDigits = mapM (toDigit mapping)
 
     validateDigits :: [Int] -> Maybe [Int]
-    validateDigits (0:_) = Nothing
-    validateDigits xs = Just xs
+    validateDigits (0 : _) = Nothing
+    validateDigits xs      = Just xs
 
     intify :: [Int] -> Int
     intify = foldr (\x acc -> x + acc * 10) 0 . reverse
 
 toDigit :: LetterMap -> Char -> Maybe Int
 toDigit mapping c = case lookup c mapping of
-  Just x -> Just x
-  Nothing -> if C.isNumber c
-    then Just (C.digitToInt c)
-    else Nothing
+  Just x  -> Just x
+  Nothing -> if C.isNumber c then Just (C.digitToInt c) else Nothing
 
 isSolution :: SymbolicEquation -> LetterMap -> Bool
 isSolution eqn = maybe False equationMatches . substituteEqn eqn
