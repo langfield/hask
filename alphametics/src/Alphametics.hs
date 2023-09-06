@@ -30,7 +30,7 @@ data NumericEquation = NumericEquation NumericExpr Int
 type LetterMap = [(Char, Int)]
 
 eval :: NumericExpr -> Int
-eval (Atom n                  ) = n
+eval (Atom n                ) = n
 eval (NumericInfix Plus  x y) = eval x + eval y
 eval (NumericInfix Times x y) = eval x * eval y
 eval (NumericInfix Power x y) = eval x ^ eval y
