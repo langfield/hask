@@ -64,9 +64,9 @@ encodeWord mapping s = intify <$> (validateDigits =<< toDigits s)
     intify = foldr (\x acc -> x + acc * 10) 0 . reverse
 
 toDigit :: LetterMap -> Char -> Maybe Int
-toDigit mapping c = case lookup c mapping of
-  Just x  -> Just x
-  Nothing -> if C.isNumber c then Just (C.digitToInt c) else Nothing
+toDigit mapping c
+  | C.isNumber c = Just (C.digitToInt c)
+  | otherwise    = lookup c mapping
 
 isSolution :: SymbolicEquation -> LetterMap -> Bool
 isSolution eqn = maybe False equationMatches . substituteEqn eqn
