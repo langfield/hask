@@ -5,6 +5,7 @@ dependencies:
   - base
   - containers
   - text
+  - megaparsec
 
 library:
   exposed-modules: Sgf
