@@ -6,6 +6,7 @@ dependencies:
   - containers
   - text
   - megaparsec
+  - parser-combinators
 
 library:
   exposed-modules: Sgf
