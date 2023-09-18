@@ -14,11 +14,13 @@ import qualified Text.Megaparsec.Char as MPC
 import qualified Control.Applicative.Combinators as AC
 
 type Parser = Parsec Void Text
+type PropertyMap = Map Text [Text]
+data Descendants = Nested [Tree PropertyMap] | Flat [Tree PropertyMap] deriving Show
 
 -- The semicolon kinda means, "Everything after this is a single child node of
 -- the previous node."
 
-parseSgf :: Text -> Maybe (Tree (Map Text [Text]))
+parseSgf :: Text -> Maybe (Tree PropertyMap)
 parseSgf = MP.parseMaybe parseNodes
 
 parseProperty :: Parser (Text, [Text])
@@ -34,17 +36,24 @@ parsePropertyValue = do
   _ <- MPC.char ']'
   pure (T.pack p)
 
-parseNode :: Parser (Tree (Map Text [Text]))
+parseNode :: Parser PropertyMap
 parseNode = do
   _ <- MPC.char ';'
   ps <- AC.many parseProperty
-  pure (Node (M.fromList ps) [])
+  pure (M.fromList ps)
 
-parseNodes :: Parser (Tree (Map Text [Text]))
+stackMaps :: [PropertyMap] -> Tree PropertyMap
+stackMaps [] = Node M.empty []
+stackMaps [m] = Node m []
+stackMaps (m : ms) = Node m [stackMaps ms]
+
+parseNodes :: Parser (Tree PropertyMap)
 parseNodes = do
   _ <- MPC.char '('
-  nodes <- AC.some parseNode
+  maps <- AC.some parseNode
+  children <- AC.many parseNodes
   _ <- MPC.char ')'
-  case nodes of
+  case maps of
     [] -> pure (Node M.empty [])
-    (Node m children : ns) -> pure (Node m (children ++ ns))
+    [m] -> pure (Node m children)
+    ms -> pure (stackMaps ms)
