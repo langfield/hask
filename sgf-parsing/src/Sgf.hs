@@ -32,9 +32,9 @@ parseProperty = do
 parsePropertyValue :: Parser Text
 parsePropertyValue = do
   _ <- MPC.char '['
-  p <- AC.some MPC.letterChar
+  s <- AC.some (MP.anySingleBut ']')
   _ <- MPC.char ']'
-  pure (T.pack p)
+  pure (T.replace "\t" " " . T.pack $ s)
 
 parseNode :: Parser PropertyMap
 parseNode = do
