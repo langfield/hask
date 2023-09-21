@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Sgf (parseSgf) where
 
+import Control.Applicative ((<|>))
 import Data.Map  (Map)
 import Data.Void (Void)
 import Data.Text (Text)
@@ -29,12 +30,20 @@ parseProperty = do
   contents <- AC.some parsePropertyValue
   pure (T.pack name, contents)
 
+parseEscaped :: Parser Char
+parseEscaped = MPC.char '\\' *> MP.satisfy (`elem` ['\\', ']'])
+
+parsePropertyValuePith :: Parser Text
+parsePropertyValuePith = do
+  s <- AC.some (parseEscaped <|> MP.satisfy (`notElem` ['\\', ']']))
+  pure $ T.pack s
+
 parsePropertyValue :: Parser Text
 parsePropertyValue = do
   _ <- MPC.char '['
-  s <- AC.some (MP.anySingleBut ']')
+  s <- parsePropertyValuePith
   _ <- MPC.char ']'
-  pure (T.replace "\t" " " . T.pack $ s)
+  pure (T.replace "\t" " " . T.replace "\\\t" " " $ s)
 
 parseNode :: Parser PropertyMap
 parseNode = do
