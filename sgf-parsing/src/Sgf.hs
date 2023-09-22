@@ -1,78 +1,65 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Sgf (parseSgf) where
 
-import Control.Applicative ((<|>))
-import Data.Map  (Map)
-import Data.Void (Void)
+import Control.Applicative (Alternative(..))
+import Data.Char (isUpper)
+import Data.Functor ((<&>))
+import Data.Map (Map, fromList)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
-import Data.Tree (Tree (..))
-import Text.Megaparsec (Parsec)
-
 import qualified Data.Text as T
-import qualified Data.Map as M
-import qualified Text.Megaparsec as MP
-import qualified Text.Megaparsec.Char as MPC
-import qualified Control.Applicative.Combinators as AC
+import Data.Tree (Tree(..))
+import Data.Void (Void)
+import Text.Megaparsec (MonadParsec(..), Parsec, anySingle, anySingleBut, manyTill, parse, satisfy)
+import Text.Megaparsec.Char (char)
 
+-- | A tree of nodes.
+type SgfTree = Tree SgfNode
+
+-- | A node is a property list, each key can only occur once.
+-- Keys may have multiple values associated with them.
+type SgfNode = Map Text [Text]
 type Parser = Parsec Void Text
-type PropertyMap = Map Text [Text]
-data Descendants = Nested [Tree PropertyMap] | Flat [Tree PropertyMap] deriving Show
 
--- The semicolon kinda means, "Everything after this is a single child node of
--- the previous node."
+propName :: Parser Text
+propName = T.pack <$> some (satisfy isUpper)
 
-parseSgf :: Text -> Maybe (Tree PropertyMap)
-parseSgf = MP.parseMaybe parseNodes
+propValue :: Parser Text
+propValue = T.pack . concat <$ char '[' <*> manyTill charLiteral (char ']')
+  where
+    charLiteral :: Parser String
+    charLiteral =
+      (anySingleBut '\\' <&> convert [('\t', " ")])
+        <|> -- or --
+      -- escape sequence (\ + any char)
+            (char '\\' *> anySingle <&> convert [('\t', " "), ('\n', "")])
+      -- regular character...
 
-parseProperty :: Parser (Text, [Text])
-parseProperty = do
-  name <- AC.some MPC.upperChar
-  contents <- AC.some parsePropertyValue
-  pure (T.pack name, contents)
+    convert :: [(Char, String)] -> Char -> String
+    convert t c = fromMaybe [c] (lookup c t)
 
-parseEscaped :: Parser String
-parseEscaped = do
-  _ <- MPC.char '\\'
-  c <- MP.satisfy (`elem` ['\\', ']', '\t', '\n', 't', 'n'])
-  pure $ case c of
-    '\n' -> "\\\n"
-    c' -> [c']
+prop :: Parser (Text, [Text])
+prop = (,) <$> propName <*> some propValue
 
-parseUnescaped :: Parser String
-parseUnescaped = do
-  c <- MP.satisfy (`notElem` ['\\', ']'])
-  pure [c]
+node :: Parser SgfNode
+node = fromList <$ char ';' <*> many prop
 
-parsePropertyValuePith :: Parser Text
-parsePropertyValuePith = do
-  s <- AC.some (parseEscaped <|> parseUnescaped)
-  pure . T.pack . concat $ s
+branch :: Parser SgfTree
+branch =
+  try
+      (do
+        n <- node
+        b <- branch
+        return $ Node n [b]
+      )
+    <|> Node
+    <$> node
+    <*> many tree
 
-parsePropertyValue :: Parser Text
-parsePropertyValue = do
-  _ <- MPC.char '['
-  s <- parsePropertyValuePith
-  _ <- MPC.char ']'
-  pure (T.replace "\t" " " . T.replace "\\\\" "\\" . T.replace "\\\n" "" $ s)
+tree :: Parser SgfTree
+tree = char '(' *> branch <* char ')'
 
-parseNode :: Parser PropertyMap
-parseNode = do
-  _ <- MPC.char ';'
-  ps <- AC.many parseProperty
-  pure (M.fromList ps)
-
-stackMaps :: [PropertyMap] -> Tree PropertyMap
-stackMaps [] = Node M.empty []
-stackMaps [m] = Node m []
-stackMaps (m : ms) = Node m [stackMaps ms]
-
-parseNodes :: Parser (Tree PropertyMap)
-parseNodes = do
-  _ <- MPC.char '('
-  maps <- AC.some parseNode
-  children <- AC.many parseNodes
-  _ <- MPC.char ')'
-  case maps of
-    [] -> pure (Node M.empty [])
-    [m] -> pure (Node m children)
-    ms -> pure (stackMaps ms)
+parseSgf :: String -> Maybe SgfTree
+parseSgf = rightToMaybe . parse (tree <* eof) "<String>" . T.pack
+  where
+    rightToMaybe (Left  _) = Nothing
+    rightToMaybe (Right t) = Just t
