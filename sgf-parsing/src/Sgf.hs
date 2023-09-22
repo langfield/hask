@@ -30,20 +30,30 @@ parseProperty = do
   contents <- AC.some parsePropertyValue
   pure (T.pack name, contents)
 
-parseEscaped :: Parser Char
-parseEscaped = MPC.char '\\' *> MP.satisfy (`elem` ['\\', ']'])
+parseEscaped :: Parser String
+parseEscaped = do
+  _ <- MPC.char '\\'
+  c <- MP.satisfy (`elem` ['\\', ']', '\t', '\n', 't', 'n'])
+  pure $ case c of
+    '\n' -> "\\\n"
+    c' -> [c']
+
+parseUnescaped :: Parser String
+parseUnescaped = do
+  c <- MP.satisfy (`notElem` ['\\', ']'])
+  pure [c]
 
 parsePropertyValuePith :: Parser Text
 parsePropertyValuePith = do
-  s <- AC.some (parseEscaped <|> MP.satisfy (`notElem` ['\\', ']']))
-  pure $ T.pack s
+  s <- AC.some (parseEscaped <|> parseUnescaped)
+  pure . T.pack . concat $ s
 
 parsePropertyValue :: Parser Text
 parsePropertyValue = do
   _ <- MPC.char '['
   s <- parsePropertyValuePith
   _ <- MPC.char ']'
-  pure (T.replace "\t" " " . T.replace "\\\t" " " $ s)
+  pure (T.replace "\t" " " . T.replace "\\\\" "\\" . T.replace "\\\n" "" $ s)
 
 parseNode :: Parser PropertyMap
 parseNode = do
