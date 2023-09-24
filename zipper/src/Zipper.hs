@@ -1,72 +1,56 @@
-module Zipper (
-    BinTree(..),
-    Zipper,
-    fromTree,
-    toTree,
-    value,
-    left,
-    right,
-    up,
-    setValue,
-    setLeft,
-    setRight
-) where
-import Data.List (foldl')
+module Zipper
+ ( BinTree(BT)
+ , fromTree
+ , left
+ , right
+ , setLeft
+ , setRight
+ , setValue
+ , toTree
+ , up
+ , value
+ ) where
 
--- | A binary tree.
-data BinTree a = BT { 
-    btValue :: a                 -- ^ Value
-  , btLeft  :: Maybe (BinTree a) -- ^ Left child
-  , btRight :: Maybe (BinTree a) -- ^ Right child
-} deriving (Eq, Show)
+data BinTree a = BT { btValue :: a
+                    , btLeft  :: Maybe (BinTree a)
+                    , btRight :: Maybe (BinTree a)
+                    } deriving (Eq, Show)
 
-type T a = (a, Maybe (BinTree a))
+data Path a = L a (Maybe (BinTree a))
+            | R a (Maybe (BinTree a))
+            deriving (Eq, Show)
 
--- | A zipper for a binary tree.
-data Zipper a = Zipper 
-      { zValue :: a
-      , zLeft  :: Maybe (BinTree a)
-      , zRight :: Maybe (BinTree a)
-      , zTop   :: [Either (T a) (T a)]
-      } deriving (Show, Eq)
+data Zipper a = Zipper (BinTree a) [Path a] deriving (Eq, Show)
 
--- | Get a zipper focussed on the root node.
 fromTree :: BinTree a -> Zipper a
-fromTree (BT x l r) = Zipper x l r []
+fromTree t = Zipper t []
 
--- | Get the complete tree from a zipper.
 toTree :: Zipper a -> BinTree a
-toTree (Zipper x l r t) = foldl' go (BT x l r) t
-  where
-    go b (Left (x',l')) = BT x' l' (Just b)
-    go b (Right (x',r')) = BT x' (Just b) r'
+toTree (Zipper t []) = t
+toTree (Zipper lt (L val r : xs)) = toTree $ Zipper (BT val (Just lt) r) xs
+toTree (Zipper rt (R val l : xs)) = toTree $ Zipper (BT val l (Just rt)) xs
 
--- | Get the value of the focus node.
 value :: Zipper a -> a
-value = zValue
+value (Zipper t _) = btValue t
 
--- | Get the left child of the focus node, if any.
 left :: Zipper a -> Maybe (Zipper a)
-left (Zipper a l r t) = fmap (\(BT x  l' r') -> Zipper x l' r' (Right (a,r):t)) l
+left (Zipper (BT val (Just lt) r) xs) = Just $ Zipper lt (L val r : xs)
+left (Zipper (BT _ Nothing _) _) = Nothing
 
--- | Get the right child of the focus node, if any.
 right :: Zipper a -> Maybe (Zipper a)
-right (Zipper a l r t) = fmap (\(BT x l' r') -> Zipper x l' r' (Left (a,l):t)) r
+right (Zipper (BT val l (Just rt)) xs) = Just $ Zipper rt (R val l : xs)
+right (Zipper (BT _ _ Nothing) _) = Nothing
 
--- | Get the parent of the focus node, if any.
 up :: Zipper a -> Maybe (Zipper a)
-up (Zipper _ _ _ []) = Nothing
-up (Zipper a l r (Left (x,l'):ts))  = Just $ Zipper x l' (Just $ BT a l r) ts
-up (Zipper a l r (Right (x,r'):ts)) = Just $ Zipper x (Just $ BT a l r) r' ts
+up (Zipper lt (L val r : xs)) = Just $ Zipper (BT val (Just lt) r) xs
+up (Zipper rt (R val l : xs)) = Just $ Zipper (BT val l (Just rt)) xs
+up (Zipper _ []) = Nothing
 
--- | Set the value of the focus node.
 setValue :: a -> Zipper a -> Zipper a
-setValue x z = z{zValue = x}
+setValue val (Zipper t xs) = Zipper t{ btValue = val } xs
 
--- | Replace a left child tree.
 setLeft :: Maybe (BinTree a) -> Zipper a -> Zipper a
-setLeft l z = z{zLeft = l} 
+setLeft l (Zipper t xs) = Zipper t{ btLeft = l } xs
 
--- | Replace a right child tree.
 setRight :: Maybe (BinTree a) -> Zipper a -> Zipper a
-setRight r z = z{zRight = r}
+setRight r (Zipper t xs) = Zipper t{ btRight = r } xs
