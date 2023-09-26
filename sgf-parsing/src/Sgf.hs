@@ -23,19 +23,19 @@ type Parser = Parsec Void Text
 propName :: Parser Text
 propName = T.pack <$> some (satisfy isUpper)
 
+convert :: [(Char, String)] -> Char -> String
+convert t c = fromMaybe [c] (lookup c t)
+
+charLiteral :: Parser String
+charLiteral =
+  (anySingleBut '\\' <&> convert [('\t', " ")])
+    <|> -- or --
+  -- escape sequence (\ + any char)
+        (char '\\' *> anySingle <&> convert [('\t', " "), ('\n', "")])
+  -- regular character...
+
 propValue :: Parser Text
 propValue = T.pack . concat <$ char '[' <*> manyTill charLiteral (char ']')
-  where
-    charLiteral :: Parser String
-    charLiteral =
-      (anySingleBut '\\' <&> convert [('\t', " ")])
-        <|> -- or --
-      -- escape sequence (\ + any char)
-            (char '\\' *> anySingle <&> convert [('\t', " "), ('\n', "")])
-      -- regular character...
-
-    convert :: [(Char, String)] -> Char -> String
-    convert t c = fromMaybe [c] (lookup c t)
 
 prop :: Parser (Text, [Text])
 prop = (,) <$> propName <*> some propValue
