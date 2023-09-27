@@ -9,30 +9,28 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Tree (Tree(..))
 import Data.Void (Void)
-import Text.Megaparsec (MonadParsec(..), Parsec, anySingle, anySingleBut, manyTill, parse, satisfy)
+import Text.Megaparsec (MonadParsec(..), Parsec, anySingle, anySingleBut, manyTill, parseMaybe, satisfy)
 import Text.Megaparsec.Char (char)
 
--- | A tree of nodes.
-type SgfTree = Tree SgfNode
-
--- | A node is a property list, each key can only occur once.
+-- | The data of a node is a property list, each key can only occur once.
 -- Keys may have multiple values associated with them.
-type SgfNode = Map Text [Text]
+type PropMap = Map Text [Text]
 type Parser = Parsec Void Text
-
-propName :: Parser Text
-propName = T.pack <$> some (satisfy isUpper)
 
 convert :: [(Char, String)] -> Char -> String
 convert t c = fromMaybe [c] (lookup c t)
 
+regularChar :: Parser String
+regularChar = anySingleBut '\\' <&> convert [('\t', " ")]
+
+escapeSequence :: Parser String
+escapeSequence = char '\\' *> anySingle <&> convert [('\t', " "), ('\n', "")]
+
 charLiteral :: Parser String
-charLiteral =
-  (anySingleBut '\\' <&> convert [('\t', " ")])
-    <|> -- or --
-  -- escape sequence (\ + any char)
-        (char '\\' *> anySingle <&> convert [('\t', " "), ('\n', "")])
-  -- regular character...
+charLiteral = regularChar <|> escapeSequence
+
+propName :: Parser Text
+propName = T.pack <$> some (satisfy isUpper)
 
 propValue :: Parser Text
 propValue = T.pack . concat <$ char '[' <*> manyTill charLiteral (char ']')
@@ -40,26 +38,23 @@ propValue = T.pack . concat <$ char '[' <*> manyTill charLiteral (char ']')
 prop :: Parser (Text, [Text])
 prop = (,) <$> propName <*> some propValue
 
-node :: Parser SgfNode
-node = fromList <$ char ';' <*> many prop
+propMap :: Parser PropMap
+propMap = fromList <$ char ';' <*> many prop
 
-branch :: Parser SgfTree
-branch =
-  try
-      (do
-        n <- node
-        b <- branch
-        return $ Node n [b]
-      )
-    <|> Node
-    <$> node
-    <*> many tree
+node :: Parser (Tree PropMap)
+node = do
+  m <- propMap
+  b <- branch
+  pure $ Node m [b]
 
-tree :: Parser SgfTree
+node' :: Parser (Tree PropMap)
+node' = Node <$> propMap <*> many tree
+
+branch :: Parser (Tree PropMap)
+branch = try node <|> node'
+
+tree :: Parser (Tree PropMap)
 tree = char '(' *> branch <* char ')'
 
-parseSgf :: String -> Maybe SgfTree
-parseSgf = rightToMaybe . parse (tree <* eof) "<String>" . T.pack
-  where
-    rightToMaybe (Left  _) = Nothing
-    rightToMaybe (Right t) = Just t
+parseSgf :: String -> Maybe (Tree PropMap)
+parseSgf = parseMaybe (tree <* eof) . T.pack
