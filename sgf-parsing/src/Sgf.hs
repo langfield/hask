@@ -18,7 +18,7 @@ type PropMap = Map Text [Text]
 type Parser = Parsec Void Text
 
 convert :: [(Char, String)] -> Char -> String
-convert t c = fromMaybe [c] (lookup c t)
+convert m c = fromMaybe [c] (lookup c m)
 
 regularChar :: Parser String
 regularChar = anySingleBut '\\' <&> convert [('\t', " ")]
