@@ -20,6 +20,20 @@ data Path a = L a (Maybe (BinTree a))
             | R a (Maybe (BinTree a))
             deriving (Eq, Show)
 
+-- A zipper is a binary tree and a path from the tree to the root.
+--
+-- The tree is one of:
+-- * root
+-- * left subtree
+-- * right subtree
+--
+-- If it is a root, the path is [].
+-- If it is left subtree, head of path is (L x r)
+--    r is its twin, the right subtree
+--    x is the value at the parent
+-- If it is right subtree, head of path is (R x l)
+--    l is its twin, the left subtree
+--    x is the value at the parent
 data Zipper a = Zipper (BinTree a) [Path a] deriving (Eq, Show)
 
 fromTree :: BinTree a -> Zipper a
