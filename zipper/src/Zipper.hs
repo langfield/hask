@@ -11,10 +11,8 @@ module Zipper
  , value
  ) where
 
-data BinTree a = BT { btValue :: a
-                    , btLeft  :: Maybe (BinTree a)
-                    , btRight :: Maybe (BinTree a)
-                    } deriving (Eq, Show)
+data BinTree a = BT a (Maybe (BinTree a)) (Maybe (BinTree a))
+  deriving (Eq, Show)
 
 data Path a = L a (Maybe (BinTree a))
             | R a (Maybe (BinTree a))
@@ -40,31 +38,25 @@ fromTree :: BinTree a -> Zipper a
 fromTree t = Zipper t []
 
 toTree :: Zipper a -> BinTree a
-toTree (Zipper t []) = t
-toTree (Zipper lt (L val r : xs)) = toTree $ Zipper (BT val (Just lt) r) xs
-toTree (Zipper rt (R val l : xs)) = toTree $ Zipper (BT val l (Just rt)) xs
+toTree (Zipper t _) = t
 
 value :: Zipper a -> a
-value (Zipper t _) = btValue t
+value (Zipper (BT x _ _) _) = x
 
 left :: Zipper a -> Maybe (Zipper a)
-left (Zipper (BT val (Just lt) r) xs) = Just $ Zipper lt (L val r : xs)
-left (Zipper (BT _ Nothing _) _) = Nothing
+left = undefined
 
 right :: Zipper a -> Maybe (Zipper a)
-right (Zipper (BT val l (Just rt)) xs) = Just $ Zipper rt (R val l : xs)
-right (Zipper (BT _ _ Nothing) _) = Nothing
+right = undefined
 
 up :: Zipper a -> Maybe (Zipper a)
-up (Zipper lt (L val r : xs)) = Just $ Zipper (BT val (Just lt) r) xs
-up (Zipper rt (R val l : xs)) = Just $ Zipper (BT val l (Just rt)) xs
-up (Zipper _ []) = Nothing
+up = undefined
 
 setValue :: a -> Zipper a -> Zipper a
-setValue val (Zipper t xs) = Zipper t{ btValue = val } xs
+setValue = undefined
 
 setLeft :: Maybe (BinTree a) -> Zipper a -> Zipper a
-setLeft l (Zipper t xs) = Zipper t{ btLeft = l } xs
+setLeft = undefined
 
 setRight :: Maybe (BinTree a) -> Zipper a -> Zipper a
-setRight r (Zipper t xs) = Zipper t{ btRight = r } xs
+setRight = undefined
