@@ -28,17 +28,17 @@ fromTree t = Zipper t []
 toTree :: Zipper a -> BinTree a
 toTree (Zipper tree []) = tree
 toTree (Zipper l (L x r : ss)) = toTree $ Zipper (BT x (Just l) r) ss
-toTree (Zipper r (R x l : ss)) = toTree $ Zipper (BT x (Just r) l) ss
+toTree (Zipper r (R x l : ss)) = toTree $ Zipper (BT x l (Just r)) ss
 
 value :: Zipper a -> a
 value (Zipper (BT x _ _) _) = x
 
 left :: Zipper a -> Maybe (Zipper a)
-left (Zipper r (R x (Just l) : ss)) = Just $ Zipper l (L x (Just r) : ss)
+left (Zipper (BT x (Just l) r) ss) = Just $ Zipper l (L x r : ss)
 left _ = Nothing
 
 right :: Zipper a -> Maybe (Zipper a)
-right (Zipper l (L x (Just r) : ss)) = Just $ Zipper r (R x (Just l) : ss)
+right (Zipper (BT x l (Just r)) ss) = Just $ Zipper r (R x l : ss)
 right _ = Nothing
 
 up :: Zipper a -> Maybe (Zipper a)
