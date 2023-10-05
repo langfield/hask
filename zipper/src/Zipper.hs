@@ -1,62 +1,56 @@
 module Zipper
- ( BinTree(BT)
- , fromTree
- , left
- , right
- , setLeft
- , setRight
- , setValue
- , toTree
- , up
- , value
- ) where
+  ( BinTree(BT)
+  , fromTree
+  , left
+  , right
+  , setLeft
+  , setRight
+  , setValue
+  , toTree
+  , up
+  , value
+  ) where
 
 data BinTree a = BT a (Maybe (BinTree a)) (Maybe (BinTree a))
   deriving (Eq, Show)
 
-data Path a = L a (Maybe (BinTree a))
-            | R a (Maybe (BinTree a))
-            deriving (Eq, Show)
+data Sibling a = L a (Maybe (BinTree a))
+               | R a (Maybe (BinTree a))
+               deriving (Eq, Show)
 
--- A zipper is a binary tree and a path from the tree to the root.
---
--- The tree is one of:
--- * root
--- * left subtree
--- * right subtree
---
--- If it is a root, the path is [].
--- If it is left subtree, head of path is (L x r)
---    r is its twin, the right subtree
---    x is the value at the parent
--- If it is right subtree, head of path is (R x l)
---    l is its twin, the left subtree
---    x is the value at the parent
-data Zipper a = Zipper (BinTree a) [Path a] deriving (Eq, Show)
+data Zipper a = Zipper (BinTree a) [Sibling a]
+  deriving (Eq, Show)
 
 fromTree :: BinTree a -> Zipper a
 fromTree t = Zipper t []
 
+-- | Walk up to the root.
 toTree :: Zipper a -> BinTree a
-toTree (Zipper t _) = t
+toTree (Zipper tree []) = tree
+toTree (Zipper l (L x r : ss)) = toTree $ Zipper (BT x (Just l) r) ss
+toTree (Zipper r (R x l : ss)) = toTree $ Zipper (BT x (Just r) l) ss
 
 value :: Zipper a -> a
 value (Zipper (BT x _ _) _) = x
 
 left :: Zipper a -> Maybe (Zipper a)
-left = undefined
+left (Zipper r (R x (Just l) : ss)) = Just $ Zipper l (L x (Just r) : ss)
+left _ = Nothing
 
 right :: Zipper a -> Maybe (Zipper a)
-right = undefined
+right (Zipper l (L x (Just r) : ss)) = Just $ Zipper r (R x (Just l) : ss)
+right _ = Nothing
 
 up :: Zipper a -> Maybe (Zipper a)
-up = undefined
+up (Zipper lt (L val r : xs)) = Just $ Zipper (BT val (Just lt) r) xs
+up (Zipper rt (R val l : xs)) = Just $ Zipper (BT val l (Just rt)) xs
+up (Zipper _  []) = Nothing
 
 setValue :: a -> Zipper a -> Zipper a
-setValue = undefined
+setValue x' (Zipper (BT _ l r) xs) = Zipper (BT x' l r) xs
 
 setLeft :: Maybe (BinTree a) -> Zipper a -> Zipper a
-setLeft = undefined
+setLeft l' (Zipper (BT x _ r) xs) = Zipper (BT x l' r) xs
 
 setRight :: Maybe (BinTree a) -> Zipper a -> Zipper a
-setRight = undefined
+setRight r' (Zipper (BT x l _) xs) = Zipper (BT x l r') xs
