@@ -33,18 +33,20 @@ toTree (Zipper r (R x l : ss)) = toTree $ Zipper (BT x l (Just r)) ss
 value :: Zipper a -> a
 value (Zipper (BT x _ _) _) = x
 
+-- | Move the zipper to the left child of current node (if it exists).
 left :: Zipper a -> Maybe (Zipper a)
 left (Zipper (BT x (Just l) r) ss) = Just $ Zipper l (L x r : ss)
 left _ = Nothing
 
+-- | Move the zipper to the right child of current node (if it exists).
 right :: Zipper a -> Maybe (Zipper a)
 right (Zipper (BT x l (Just r)) ss) = Just $ Zipper r (R x l : ss)
 right _ = Nothing
 
 up :: Zipper a -> Maybe (Zipper a)
-up (Zipper lt (L val r : xs)) = Just $ Zipper (BT val (Just lt) r) xs
-up (Zipper rt (R val l : xs)) = Just $ Zipper (BT val l (Just rt)) xs
-up (Zipper _  []) = Nothing
+up (Zipper l (L x r : ss)) = Just $ Zipper (BT x (Just l) r) ss
+up (Zipper r (R x l : ss)) = Just $ Zipper (BT x l (Just r)) ss
+up (Zipper _ []) = Nothing
 
 setValue :: a -> Zipper a -> Zipper a
 setValue x' (Zipper (BT _ l r) xs) = Zipper (BT x' l r) xs
