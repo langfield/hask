@@ -43,16 +43,17 @@ right :: Zipper a -> Maybe (Zipper a)
 right (Zipper (BT x l (Just r)) ss) = Just $ Zipper r (R x l : ss)
 right _ = Nothing
 
+-- | Move the zipper to the parent of current node.
 up :: Zipper a -> Maybe (Zipper a)
 up (Zipper l (L x r : ss)) = Just $ Zipper (BT x (Just l) r) ss
 up (Zipper r (R x l : ss)) = Just $ Zipper (BT x l (Just r)) ss
 up (Zipper _ []) = Nothing
 
 setValue :: a -> Zipper a -> Zipper a
-setValue x' (Zipper (BT _ l r) xs) = Zipper (BT x' l r) xs
+setValue x (Zipper (BT _ l r) xs) = Zipper (BT x l r) xs
 
 setLeft :: Maybe (BinTree a) -> Zipper a -> Zipper a
-setLeft l' (Zipper (BT x _ r) xs) = Zipper (BT x l' r) xs
+setLeft l (Zipper (BT x _ r) xs) = Zipper (BT x l r) xs
 
 setRight :: Maybe (BinTree a) -> Zipper a -> Zipper a
-setRight r' (Zipper (BT x l _) xs) = Zipper (BT x l r') xs
+setRight r (Zipper (BT x l _) xs) = Zipper (BT x l r) xs
