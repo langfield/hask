@@ -85,23 +85,19 @@ getDef defs (Word name)
       Nothing -> Left $ UnknownWord (T.pack name)
 getDef _ _ = Left InvalidWord
 
+-- define defs ts' def xs w = go (ForthState xs (M.insert (map C.toLower w) def defs)) ts'
+
 go :: ForthState -> [Token] -> Either ForthError ForthState
 go stack [] = Right stack
 go (ForthState xs defs) (Colon : Word w : ts)
   | all C.isDigit w = Left InvalidWord
-  | otherwise =
-    case foldr (>=>) Right <$> mapM (getDef defs) ws of
-      Right def -> go (ForthState xs (M.insert (map C.toLower w) def defs)) ts'
-      Left err -> Left err
+  | otherwise = define . foldr (>=>) Right =<< mapM (getDef defs) ws
     where
       (ws, ts') = break (== Semi) ts
-go (ForthState xs defs) (Word w : ts) =
-  case getDef defs (Word w) of
-    Right def ->
-      case def xs of
-        Right xs' -> go (ForthState xs' defs) ts
-        Left err -> Left err
-    Left err -> Left err
+      define def = go (ForthState xs (M.insert (map C.toLower w) def defs)) ts'
+go (ForthState xs defs) (Word w : ts) = getDef defs (Word w) >>= run
+  where
+    run def = def xs >>= (\xs' -> go (ForthState xs' defs) ts)
 go stack (Semi : ts) = go stack ts
 go (ForthState _ _) _ = Left StackUnderflow
 
