@@ -8,18 +8,13 @@ module Forth
   , emptyState
   ) where
 
-import Control.Monad ((>=>))
+import Control.Monad ((>=>), (<=<))
 import Data.Map (Map)
 import Data.Text (Text)
 
 import qualified Data.Map as M
 import qualified Data.Char as C
 import qualified Data.Text as T
-
-import Debug.Trace (trace)
-
-trace' :: Show a => String -> a -> a
-trace' s x = trace (s ++ ": " ++ show x) x
 
 data ForthError
      = DivisionByZero
@@ -76,36 +71,37 @@ over' _ = Left StackUnderflow
 emptyState :: ForthState
 emptyState = ForthState [] $ M.fromList [("+", add'), ("-", sub'), ("*", mul'), ("/", div'), ("dup", dup'), ("drop", drop'), ("swap", swap'), ("over", over')]
 
-getDef :: Namespace -> Token -> Either ForthError ([Int] -> Either ForthError [Int])
-getDef defs (Word name)
-  | all C.isDigit name = Right (\xs -> Right (read name : xs))
-  | otherwise =
-    case M.lookup (map C.toLower name) defs of
-      Just def -> Right def
-      Nothing -> Left $ UnknownWord (T.pack name)
-getDef _ _ = Left InvalidWord
+getDef :: Namespace -> String -> Either ForthError ([Int] -> Either ForthError [Int])
+getDef defs w
+  | all C.isDigit w = Right (\xs -> Right (read w : xs))
+  | otherwise = maybe unknown Right (M.lookup w defs)
+  where
+    unknown = Left . UnknownWord . T.pack $ w
 
--- define defs ts' def xs w = go (ForthState xs (M.insert (map C.toLower w) def defs)) ts'
+wordName :: Token -> Either ForthError String
+wordName (Word name) = Right name
+wordName _ = Left InvalidWord
 
-go :: ForthState -> [Token] -> Either ForthError ForthState
-go stack [] = Right stack
-go (ForthState xs defs) (Colon : Word w : ts)
+go :: [Int] -> Namespace -> [Token] -> Either ForthError ForthState
+go xs defs [] = Right (ForthState xs defs)
+go xs defs (Semi : ts) = go xs defs ts
+go xs defs (Word w : ts) = getDef defs w >>= run
+  where
+    run def = def xs >>= (\xs' -> go xs' defs ts)
+go xs defs (Colon : Word w : ts)
   | all C.isDigit w = Left InvalidWord
-  | otherwise = define . foldr (>=>) Right =<< mapM (getDef defs) ws
+  | otherwise = define . composeMany =<< mapM (getDef defs <=< wordName) ws
     where
       (ws, ts') = break (== Semi) ts
-      define def = go (ForthState xs (M.insert (map C.toLower w) def defs)) ts'
-go (ForthState xs defs) (Word w : ts) = getDef defs (Word w) >>= run
-  where
-    run def = def xs >>= (\xs' -> go (ForthState xs' defs) ts)
-go stack (Semi : ts) = go stack ts
-go (ForthState _ _) _ = Left StackUnderflow
+      composeMany = foldr (>=>) Right
+      define def = go xs (M.insert w def defs) ts'
+go _ _ _ = Left StackUnderflow
 
 rev :: ForthState -> ForthState
 rev (ForthState xs m) = ForthState (reverse xs) m
 
 evalText :: Text -> ForthState -> Either ForthError ForthState
-evalText text stack = fmap rev . go stack . trace' "tokens" . map parse . words . T.unpack $ text
+evalText text (ForthState xs defs) = fmap rev . go xs defs . map parse . words . map C.toLower . T.unpack $ text
 
 toList :: ForthState -> [Int]
 toList (ForthState stack _) = stack
