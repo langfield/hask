@@ -1,109 +1,68 @@
 {-# LANGUAGE OverloadedStrings #-}
-
-module Forth (ForthError(..), ForthState, evalText, toList, emptyState) where
-
-import Control.Monad ((<=<), (>=>))
+module Forth (ForthError (..), ForthState, evalText, toList, emptyState) where
+import Data.Char (isNumber, toLower)
 import Data.Map (Map)
-import Data.Text (Text)
-
-import qualified Data.Char as C
 import qualified Data.Map as M
+import Data.Maybe (fromJust, isJust)
+import Data.Text (Text)
 import qualified Data.Text as T
 
 data ForthError
-     = DivisionByZero
-     | StackUnderflow
-     | InvalidWord
-     | UnknownWord Text
-     deriving (Show, Eq)
+  = DivisionByZero
+  | StackUnderflow
+  | InvalidWord
+  | UnknownWord Text
+  deriving (Show, Eq)
 
-data Token = Colon | Semi | Word String
-  deriving (Eq, Show)
-
--- Function calls just push their implementation onto the stack.
-type Namespace = Map String ([Int] -> Either ForthError [Int])
-data ForthState = ForthState [Int] Namespace
-
-parse :: String -> Token
-parse ":" = Colon
-parse ";" = Semi
-parse x   = Word x
-
-add' :: [Int] -> Either ForthError [Int]
-add' (x : y : rest) = Right (x + y : rest)
-add' _ = Left StackUnderflow
-
-sub' :: [Int] -> Either ForthError [Int]
-sub' (x : y : rest) = Right (y - x : rest)
-sub' _ = Left StackUnderflow
-
-mul' :: [Int] -> Either ForthError [Int]
-mul' (x : y : rest) = Right (x * y : rest)
-mul' _ = Left StackUnderflow
-
-div' :: [Int] -> Either ForthError [Int]
-div' (0 : _ : _) = Left DivisionByZero
-div' (x : y : rest) = Right (y `div` x : rest)
-div' _ = Left StackUnderflow
-
-dup' :: [Int] -> Either ForthError [Int]
-dup' (x : rest) = Right (x : x : rest)
-dup' _ = Left StackUnderflow
-
-drop' :: [Int] -> Either ForthError [Int]
-drop' (_ : rest) = Right rest
-drop' _ = Left StackUnderflow
-
-swap' :: [Int] -> Either ForthError [Int]
-swap' (x : y : rest) = Right (y : x : rest)
-swap' _ = Left StackUnderflow
-
-over' :: [Int] -> Either ForthError [Int]
-over' (x : y : rest) = Right (y : x : y : rest)
-over' _ = Left StackUnderflow
+data Token = Number Int | Symbol Text deriving (Show, Eq)
+type ForthState = (Map Text [Token], [Int])
 
 emptyState :: ForthState
-emptyState = ForthState [] $ M.fromList
-  [ ("+"   , add')
-  , ("-"   , sub')
-  , ("*"   , mul')
-  , ("/"   , div')
-  , ("dup" , dup')
-  , ("drop", drop')
-  , ("swap", swap')
-  , ("over", over')
-  ]
+emptyState = (M.empty, [])
 
-getDef :: Namespace -> String -> Either ForthError ([Int] -> Either ForthError [Int])
-getDef defs w
-  | all C.isDigit w = Right (\xs -> Right (read w : xs))
-  | otherwise = maybe unknown Right (M.lookup w defs)
-  where unknown = Left . UnknownWord . T.pack $ w
+parseToken :: Text -> Token
+parseToken token
+  | T.all isNumber token = Number . read . T.unpack $ token
+  | otherwise = Symbol . T.map toLower $ token
 
-wordName :: Token -> Either ForthError String
-wordName (Word name) = Right name
-wordName _ = Left InvalidWord
+resolve :: Map Text [Token] -> [Token] -> [Token]
+resolve _ [] = []
+resolve vars (Number n : expr) = Number n : resolve vars expr
+resolve vars (Symbol s : expr) = case M.lookup s vars of
+  Just def -> def ++ resolve vars expr
+  Nothing -> Symbol s : resolve vars expr
 
-go :: [Int] -> Namespace -> [Token] -> Either ForthError ForthState
-go xs defs [] = Right (ForthState xs defs)
-go xs defs (Semi : ts) = go xs defs ts
-go xs defs (Word w : ts) = getDef defs w >>= run
-  where run def = def xs >>= (\xs' -> go xs' defs ts)
-go xs defs (Colon : Word w : ts)
-  | all C.isDigit w = Left InvalidWord
-  | otherwise = define . composeMany =<< mapM (getDef defs <=< wordName) ws
+isBuiltin :: Text -> Bool
+isBuiltin sym = sym `elem` ["dup", "drop", "swap", "over", "+", "-", "/", "*"]
+
+-- | Recursively evaluate a token stream given some state.
+eval :: [Token] -> ForthState -> Either ForthError ForthState
+eval [] result = Right result
+eval (Number n : os) (vars, xs) = eval os (vars, n : xs)
+eval (Symbol s : os) (vars, xs)
+  | isJust def = eval (fromJust def ++ os) (vars, xs)
   where
-    (ws, ts')   = break (== Semi) ts
-    composeMany = foldr (>=>) Right
-    define def = go xs (M.insert w def defs) ts'
-go _ _ _ = Left StackUnderflow
-
-rev :: ForthState -> ForthState
-rev (ForthState xs m) = ForthState (reverse xs) m
+    def = M.lookup s vars
+eval (Symbol ":" : Number _ : _) (_, _) = Left InvalidWord
+eval (Symbol ":" : os) (vars, xs) = eval rest (newVars, xs)
+  where
+    newVars = M.insert s (resolve vars definition) vars
+    (Symbol s : definition, Symbol ";" : rest) = span (/= Symbol ";") os
+eval (Symbol "dup" : os) (vars, x : xs) = eval os (vars, x : x : xs)
+eval (Symbol "drop" : os) (vars, _ : xs) = eval os (vars, xs)
+eval (Symbol "swap" : os) (vars, x : y : rest) = eval os (vars, y : x : rest)
+eval (Symbol "over" : os) (vars, x : y : rest) = eval os (vars, y : x : y : rest)
+eval (Symbol "+" : os) (vars, x : y : rest) = eval os (vars, (y + x) : rest)
+eval (Symbol "-" : os) (vars, x : y : rest) = eval os (vars, (y - x) : rest)
+eval (Symbol "*" : os) (vars, x : y : rest) = eval os (vars, (y * x) : rest)
+eval (Symbol "/" : _) (_, 0 : _ : _) = Left DivisionByZero
+eval (Symbol "/" : os) (vars, x : y : rest) = eval os (vars, (y `div` x) : rest)
+eval (Symbol s : _) (vars, _)
+  | M.notMember s vars && not (isBuiltin s) = Left $ UnknownWord s
+  | otherwise = Left StackUnderflow
 
 evalText :: Text -> ForthState -> Either ForthError ForthState
-evalText text (ForthState xs defs) =
-  fmap rev . go xs defs . map parse . words . map C.toLower . T.unpack $ text
+evalText text = eval $ parseToken <$> T.words text
 
 toList :: ForthState -> [Int]
-toList (ForthState stack _) = stack
+toList = reverse . snd
