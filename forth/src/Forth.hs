@@ -1,9 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Forth (ForthError (..), ForthState, evalText, toList, emptyState) where
-import Data.Char (isNumber, toLower)
+
 import Data.Map (Map)
-import qualified Data.Map as M
 import Data.Text (Text)
+import Data.Char (isNumber, toLower)
+import qualified Data.Map as M
 import qualified Data.Text as T
 
 data ForthError
@@ -26,11 +27,11 @@ parseToken token
 
 -- | Inline word definitions (but only 1 level deep).
 inline :: Map Text [Token] -> [Token] -> [Token]
-inline _ [] = []
+inline _    [] = []
 inline vars (Number n : expr) = Number n : inline vars expr
 inline vars (Symbol s : expr) = case M.lookup s vars of
   Just def -> def ++ inline vars expr
-  Nothing -> Symbol s : inline vars expr
+  Nothing  -> Symbol s : inline vars expr
 
 isBuiltin :: Text -> Bool
 isBuiltin sym = sym `elem` ["dup", "drop", "swap", "over", "+", "-", "/", "*"]
@@ -46,14 +47,14 @@ eval (Symbol ":" : ts) (vars, xs) = eval rest (vars', xs)
   where
     vars' = M.insert s (inline vars def) vars
     (Symbol s : def, Symbol ";" : rest) = span (/= Symbol ";") ts
-eval (Symbol "dup" : ts) (vars, x : xs) = eval ts (vars, x : x : xs)
-eval (Symbol "drop" : ts) (vars, _ : xs) = eval ts (vars, xs)
+eval (Symbol "dup"  : ts) (vars, x : xs   ) = eval ts (vars, x : x : xs)
+eval (Symbol "drop" : ts) (vars, _ : xs   ) = eval ts (vars, xs)
 eval (Symbol "swap" : ts) (vars, x : y : rest) = eval ts (vars, y : x : rest)
 eval (Symbol "over" : ts) (vars, x : y : rest) = eval ts (vars, y : x : y : rest)
 eval (Symbol "+" : ts) (vars, x : y : rest) = eval ts (vars, (y + x) : rest)
 eval (Symbol "-" : ts) (vars, x : y : rest) = eval ts (vars, (y - x) : rest)
 eval (Symbol "*" : ts) (vars, x : y : rest) = eval ts (vars, (y * x) : rest)
-eval (Symbol "/" : _) (_, 0 : _ : _) = Left DivisionByZero
+eval (Symbol "/" : _ ) (_, 0 : _ : _)       = Left DivisionByZero
 eval (Symbol "/" : ts) (vars, x : y : rest) = eval ts (vars, (y `div` x) : rest)
 eval (Symbol s : _) _
   | not (isBuiltin s) = Left (UnknownWord s)
