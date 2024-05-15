@@ -1,11 +1,11 @@
 import Data.Foldable     (for_)
 import Test.Hspec        (Spec, describe, it, shouldBe)
-import Test.Hspec.Runner (configFastFail, defaultConfig, hspecWith)
+import Test.Hspec.Runner (configFailFast, defaultConfig, hspecWith)
 
 import Minesweeper (annotate)
 
 main :: IO ()
-main = hspecWith defaultConfig {configFastFail = True} specs
+main = hspecWith defaultConfig {configFailFast = True} specs
 
 specs :: Spec
 specs = describe "annotate" $ for_ cases test
@@ -67,5 +67,3 @@ specs = describe "annotate" $ for_ cases test
                               , "1*22*2"
                               , "111111" ] )
             ]
-
--- eae024a99a448b6bccaea07429a118767db16f64

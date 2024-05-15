@@ -1,44 +1,40 @@
 module Minesweeper where
 
 import Data.Char (intToDigit)
-import Data.Array (Array, (!))
-import qualified Data.Ix as Ix
-import qualified Data.Array as A
+import Data.List (transpose)
 
--- Convert a minesweeper board in `[String]` format to an array.
-fromList :: (Int, Int) -> [String] -> Array (Int, Int) Char
-fromList (m, n) rows = A.listArray ((0, 0), (m - 1, n - 1)) $ concat rows
-
--- Annotate a minesweeper board.
-annotate :: [String] -> [String]
-annotate [] = []
-annotate rows
-  | n == 0 = rows
-  | otherwise = map (annotateRow board n) [0 .. m - 1]
+-- | Add a ring of default elements around a 2d array.
+augment :: a -> [[a]] -> [[a]]
+augment d m = map (pad d) . pad (replicate ncols d) $ m
   where
-    m = length rows
-    n = if m > 0 then length $ head rows else 0
-    board = fromList (m, n) rows
+    pad d' = reverse . (d' :) . reverse . (d' :)
+    ncols = foldr (max . length) 0 m
 
--- Fill in mine counts for a row of the board.
-annotateRow :: Array (Int, Int) Char -> Int -> Int -> String
-annotateRow board n x = map (annotateSquare board x) [0 .. n - 1]
-
--- Fill in mine counts for a single square.
-annotateSquare :: Array (Int, Int) Char -> Int -> Int -> Char
-annotateSquare board x y
-  | isMine board (x, y) = '*'
-  | otherwise = if digit == '0' then ' ' else digit
+-- | Neighbors in a 2d array, with default.
+neighbors :: a -> [[a]] -> [[[a]]]
+neighbors d = map transpose . transpose . map' [right, up, left, down, downR, upR, upL, downL] . augment d
   where
-    digit = intToDigit $ countAdjacentMines board (x, y)
+    map' fs x = map ($ x) fs
+    rot   = transpose . reverse
+    right = map (drop 2) . reverse . drop 1 . reverse . drop 1
+    up    = rot . rot . rot . right . rot
+    left  = rot . rot . right . rot . rot
+    down  = rot . right . rot . rot . rot
+    downR = map (drop 2) . drop 2
+    upR   = rot . rot . rot . downR . rot
+    upL   = rot . rot . downR . rot . rot
+    downL = rot . downR . rot . rot . rot
 
--- Count mines adjacent to (x, y) given board size.
-countAdjacentMines :: Array (Int, Int) Char -> (Int, Int) -> Int
-countAdjacentMines board (x, y) = length $ filter (isMine board) adjacents
-  where
-    indices = Ix.range ((x - 1, y - 1), (x + 1, y + 1))
-    adjacents = filter (Ix.inRange (A.bounds board)) indices
+count :: [Char] -> Char
+count = intToDigit . length . filter (== '*')
 
--- Return whether or not the square at the given coordinates is a mine.
-isMine :: Array (Int, Int) Char -> (Int, Int) -> Bool
-isMine board (x, y) = not (null (A.indices board)) && (board ! (x, y) == '*')
+format :: Char -> [Char] -> Char
+format '*' _ = '*'
+format _ nbs = mkspaces (count nbs)
+
+mkspaces :: Char -> Char
+mkspaces '0' = ' '
+mkspaces c = c
+
+annotate :: [[Char]] -> [[Char]]
+annotate m = zipWith (zipWith format) m (neighbors ' ' m)
