@@ -17,7 +17,7 @@ half c = map mirrorRow <$> quarter c
 
 mirrorRow :: String -> String
 mirrorRow "" = ""
-mirrorRow cs = cs ++ reverse (init cs)
+mirrorRow cs = cs ++ tail (reverse cs)
 
 
 quarter :: Char -> Maybe [String]
