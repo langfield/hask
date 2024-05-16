@@ -20,7 +20,7 @@ lengthOrdering xs ys
   | otherwise = GT
 
 sortByLength :: [[Integer]] -> [[Integer]]
-sortByLength xs = sortBy lengthOrdering xs
+sortByLength = sortBy lengthOrdering
 
 getSolutions :: Integer -> [Integer] -> [[Integer]]
 getSolutions 0 _ = [[]]
@@ -34,7 +34,7 @@ getSolutions target (x : xs)
 getCandidates :: Integer -> Integer -> [Integer] -> Int -> [[Integer]]
 getCandidates target _ rest 0 = getSolutions target rest
 getCandidates target coin rest maxCount =
-  case map ((++) copies) (getSolutions (target - (sum copies)) rest) of
+  case map (copies ++) (getSolutions (target - sum copies) rest) of
     [] -> getCandidates target coin rest (maxCount - 1)
     xs -> xs
   where
