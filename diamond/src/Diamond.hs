@@ -1,31 +1,23 @@
 module Diamond (diamond) where
 
-import Data.Char (chr, ord)
+stagger :: [[Char]] -> [[Char]]
+stagger = zipWith (++) [replicate i ' ' | i <- [0..]]
+
+mirror :: [a] -> [a]
+mirror [] = []
+mirror (x:xs) = reverse xs ++ (x:xs)
 
 diamond :: Char -> Maybe [String]
-diamond c = mirrorBottom <$> half c
-
-
-mirrorBottom :: [String] -> [String]
-mirrorBottom [] = []
-mirrorBottom xs = reverse (tail xs) ++ xs
-
-
-half :: Char -> Maybe [String]
-half c = map mirrorRow <$> quarter c
-
-
-mirrorRow :: String -> String
-mirrorRow "" = ""
-mirrorRow cs = cs ++ reverse (init cs)
-
-
-quarter :: Char -> Maybe [String]
-quarter 'A' = Just ["A"]
-quarter c
-  | n >= 65 && n <= 90 = (:) (c : rPad) . map (' ' :) <$> quarter (chr (n - 1))
-  | otherwise = Nothing
-  where
-    n = ord c
-    k = n - 65
-    rPad = replicate k ' '
+diamond c
+  | c `notElem` ['A'..'Z'] = Nothing
+  | otherwise = Just
+              . mirror
+              . reverse
+              . map mirror
+              . reverse
+              . map reverse
+              . stagger
+              . map reverse
+              . reverse
+              . stagger
+              $ [[d] | d <- ['A'..c]]
