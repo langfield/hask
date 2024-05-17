@@ -1,6 +1,5 @@
 module Dominoes (chain) where
 
-import Control.Monad (msum)
 import Data.List (delete)
 import Data.Tuple (swap)
 
