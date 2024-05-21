@@ -1,22 +1,16 @@
-module Acronym
-  ( abbreviate
-  ) where
+module Acronym (abbreviate) where
 
-import Data.Char (toUpper)
+import Data.Char (isUpper, isLower, toUpper)
 
 toSpaces :: [Char] -> String -> String
 toSpaces delims = map (\c -> if c `elem` delims then ' ' else c)
 
-cap1 :: String -> String
-cap1 "" = ""
-cap1 (c:cs) = toUpper c : cs
+unCamel :: String -> String
+unCamel [] = []
+unCamel [a] = [a]
+unCamel (a:b:rest)
+  | isUpper b && isLower a = a:' ':b:unCamel rest
+  | otherwise = a:unCamel (b:rest)
 
 abbreviate :: String -> String
-abbreviate = filter (`notElem` "', ")
-           . concatMap (take 1)
-           . words
-           . toSpaces ['a'..'z']
-           . unwords
-           . map cap1
-           . words
-           . toSpaces "-_"
+abbreviate = map toUpper . concatMap (take 1) . words . toSpaces "-_" . unCamel 
