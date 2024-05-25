@@ -10,7 +10,7 @@ neighbors d xss = map (map nbs) coords
     coords = [[(i,j) | j <- [0..n-1]] | i <- [0..m-1]]
     vals = fromAscList $ zip (concat coords) (concat xss)
     directions = (0,0) : [(dx,dy) | dx <- [-1..1], dy <- [-1..1], dx /= 0 || dy /= 0]
-    nbs (x,y) = map (\(dx,dy) -> fromMaybe d (vals !? (x+dx,y+dy))) directions 
+    nbs (x,y) = map (\(dx,dy) -> fromMaybe d (vals !? (x+dx,y+dy))) directions
 
 step :: [Int] -> Int
 step [] = 0

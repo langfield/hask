@@ -1,30 +1,25 @@
-module Minesweeper (annotate, threeSum) where
+module Minesweeper (annotate) where
 
 import Data.Char (intToDigit)
-import Data.List (transpose)
+import Data.Map.Strict ((!?), fromAscList)
+import Data.Maybe (listToMaybe, fromMaybe)
+
+neighbors :: a -> [[a]] -> [[[a]]]
+neighbors d xss = map (map nbs) coords
+  where
+    (m,n) = (length xss, maybe 0 length (listToMaybe xss))
+    coords = [[(i,j) | j <- [0..n-1]] | i <- [0..m-1]]
+    directions = (0,0) : [(dx,dy) | dx <- [-1..1], dy <- [-1..1], dx /= 0 || dy /= 0]
+    values = fromAscList $ zip (concat coords) (concat xss)
+    nb (x,y) (dx,dy) = fromMaybe d (values !? (x+dx,y+dy))
+    nbs xy = map (nb xy) directions
 
 annotate :: [String] -> [String]
-annotate [""] = [""]
-annotate xs = fromCounts . sumCounts . toCounts $ xs
+annotate = map (map go) . neighbors ' '
   where
-    fromCounts = zipWith (zipWith intToChar) xs
-    sumCounts = transpose . map threeSum . transpose . map threeSum
-
--- | Take the sum of each element and its two neighbors.
-threeSum :: [Int] -> [Int]
-threeSum [] = []
-threeSum (x:xs) = go (0,x) xs
-  where
-    go (l,c) [] = [l+c]
-    go (l,c) (r:rs) = (l+c+r) : go (c,r) rs
-
-toCounts :: [[Char]] -> [[Int]]
-toCounts = map (map go)
-  where
-    go '*' = 1
-    go _   = 0
-
-intToChar :: Char -> Int -> Char
-intToChar '*' _ = '*'
-intToChar _ 0 = ' '
-intToChar _ n = intToDigit n
+    go [] = ' '
+    go ('*':_) = '*'
+    go (_:xs) =
+      case length $ filter (== '*') xs of
+        0 -> ' '
+        n -> intToDigit n
