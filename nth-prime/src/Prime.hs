@@ -5,7 +5,6 @@ nth n
   | n > 0 = Just $ primes !! (n - 1)
   | otherwise = Nothing
 
-
 -- The first number is a prime, and then we sieve out all numbers divisible by
 -- it. Thus the next number is a prime, and so on.
 primes :: [Integer]
