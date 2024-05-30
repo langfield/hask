@@ -1,70 +1,35 @@
 module WordSearch (search, CharPos(..), WordPos(..)) where
 
-import Data.List (findIndex, isPrefixOf, tails, transpose)
-import Data.Maybe (catMaybes, listToMaybe)
+import Control.Applicative (asum)
+import Data.Map (Map)
+import Data.List (sort)
+import Data.Maybe (listToMaybe)
 
-import Debug.Trace (trace)
-tt s x = trace (s ++ ": " ++ show x) x
+import qualified Data.Map as M
 
-data CharPos = CharPos {col :: Int, row :: Int} deriving (Eq, Show)
-data WordPos = WordPos {start :: CharPos, end :: CharPos} deriving (Eq, Show)
-
-rev :: WordPos -> WordPos
-rev (WordPos a b) = WordPos b a
-
-trans :: WordPos -> WordPos
-trans (WordPos (CharPos a b) (CharPos c d)) = WordPos (CharPos b a) (CharPos d c)
-
-reflect :: [String] -> WordPos -> WordPos
-reflect xss (WordPos (CharPos a b) (CharPos c d)) = WordPos (CharPos a (m-b+1)) (CharPos c (m-d+1))
-  where
-    m = length xss
-
-diagShift :: Int -> CharPos -> CharPos
-diagShift 0 c = c
-diagShift n (CharPos a b)
-  | n < 0 = CharPos a b
-  | otherwise = diagShift (n-1) (CharPos (a+1) (b+1))
-
-undiag :: [String] -> CharPos -> CharPos
-undiag xss (CharPos a b)
-  | b <= n = diagShift (a-1) $ CharPos 1 (n-b+1)
-  | otherwise = diagShift (a-1) $ CharPos (b-n+1) 1
-  where
-    n = maybe 0 length (listToMaybe xss)
-
-undiag' :: [String] -> WordPos -> WordPos
-undiag' xss (WordPos u v) = WordPos (undiag xss u) (undiag xss v)
-
-mkpos :: String -> Int -> Int -> WordPos
-mkpos w i j = WordPos (CharPos (j+1) i) (CharPos (j + length w) i)
-
-searchRow :: String -> Int -> String -> Maybe WordPos
-searchRow w i = fmap (mkpos w i) . (findIndex (w `isPrefixOf`) . tails)
-
-searchWord :: [String] -> String -> [WordPos]
-searchWord xss w = catMaybes $ zipWith (searchRow w) [1..] xss
-
-bisearch :: [String] -> String -> [WordPos]
-bisearch xss w = searchWord xss w ++ map rev (searchWord xss (reverse w))
-
-quadsearch :: [String] -> String -> [WordPos]
-quadsearch xss w = bisearch xss w ++ map trans (bisearch (transpose xss) w)
-
-rot :: [String] -> [String]
-rot = transpose . reverse
-
-diags :: [String] -> [String]
-diags xss = reverse top ++ bot
-  where
-    top = transpose $ zipWith drop [0..] xss
-    bot = transpose $ zipWith drop [1..] $ transpose xss
-
-diagsearch :: [String] -> String -> [WordPos]
-diagsearch xss w = map (trans . undiag' xss) (bisearch (diags xss) w) ++ map (reflect xss . undiag' xss) (bisearch (diags (rot xss)) w)
-
-octosearch :: [String] -> String -> [WordPos]
-octosearch xss w = quadsearch xss w ++ diagsearch xss w
+data CharPos = CharPos { col :: Int, row :: Int } deriving (Eq, Show)
+data WordPos = WordPos { start :: CharPos, end :: CharPos } deriving (Eq, Show)
 
 search :: [String] -> [String] -> [(String, Maybe WordPos)]
-search grid = map (\w -> (w, listToMaybe $ octosearch grid w))
+search gss = map (\w -> (w, searchOne gss w))
+
+mkMap :: [String] -> String -> M.Map Char [(Int,Int)]
+mkMap gss w = M.fromListWith (++) [ (c,[(x,y)]) | (y,gs) <- zip [1..] gss, (x,c) <- zip [1..] gs, c `elem` w ]
+
+searchOne :: [String] -> String -> Maybe WordPos
+searchOne _ "" = Nothing
+searchOne gss w@(c:_) = M.lookup c locs >>= \ps -> asum [ try mx my k locs w p d | p <- sort ps, d <- ds ]
+   where
+     locs = mkMap gss w
+     (k, mx, my) = (length w, maybe 0 length (listToMaybe gss), length gss)
+     ds = [(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)]
+
+try :: Ord k => Int -> Int -> Int -> Map k [(Int, Int)] -> [k] -> (Int, Int) -> (Int, Int) -> Maybe WordPos
+try mx my k locs w (x,y) (dx,dy) =
+  listToMaybe [ WordPos (CharPos x y) (CharPos x' y') | x' > 0, x' <= mx, y' > 0, y' <= my, test locs w rs ]
+  where
+    (x',y') = (x+dx*(k-1),y+dy*(k-1))
+    rs = take k (iterate (\(i,j) -> (i+dx,j+dy)) (x,y))
+
+test :: (Eq a, Ord k) => Map k [a] -> [k] -> [a] -> Bool
+test locs w = and . zipWith (\c p -> p `elem` M.findWithDefault [] c locs) w
