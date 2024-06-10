@@ -1,9 +1,7 @@
 module WordSearch (search, CharPos(..), WordPos(..)) where
 
-import Control.Monad (join)
-
 import Data.Map (Map)
-import Data.Set (Set)
+import Data.Set (Set, member)
 import Data.List (sort)
 import Data.Maybe (listToMaybe)
 
@@ -12,12 +10,6 @@ import qualified Data.Set as S
 
 data CharPos = CharPos { col :: Int, row :: Int } deriving (Eq, Show)
 data WordPos = WordPos { start :: CharPos, end :: CharPos } deriving (Eq, Show)
-
--- | Map characters in `w` to all their locations in the array.
---
--- O(wmn*log(mn))
-mklocs :: [String] -> String -> Map Char [(Int,Int)]
-mklocs gss w = M.fromListWith (++) [ (c,[(x,y)]) | (y,gs) <- zip [1..] gss, (x,c) <- zip [1..] gs, c `elem` w ]
 
 -- | O(max(mn,w*log(w)))
 -- O(w*log(w)) for the `find` and O(mn) for the `elem`
@@ -46,8 +38,8 @@ searchOne gss w@(c:_) = M.lookup c locs >>= \ps -> listToMaybe $ concat [ try (n
 
 -- =============================================================================
 
-mklocs' :: [String] -> Set Char -> Map Char [(Int,Int)]
-mklocs' gss w = M.fromListWith (++) [ (c,[(x,y)]) | (y,gs) <- zip [1..] gss, (x,c) <- zip [1..] gs, c `elem` w ]
+mklocs :: [String] -> Set Char -> Map Char [(Int,Int)]
+mklocs zss w = M.fromListWith (++) [ (c,[(j,i)]) | (i,zs) <- zip [1..] zss, (j,c) <- zip [1..] zs, c `member` w ]
 
 positions :: [String] -> [String] -> Map String WordPos
 positions zss = undefined . S.fromList . concat
