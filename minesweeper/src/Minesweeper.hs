@@ -5,14 +5,12 @@ import Data.Map.Strict ((!?), fromAscList)
 import Data.Maybe (listToMaybe, fromMaybe)
 
 neighbors :: a -> [[a]] -> [[[a]]]
-neighbors d xss = map (map nbs) coords
+neighbors d zss = unmaybe [[map (vals !?) (nbs x y) | y <- [0..n-1]] | x <- [0..m-1]]
   where
-    (m,n) = (length xss, maybe 0 length (listToMaybe xss))
-    coords = [[(i,j) | j <- [0..n-1]] | i <- [0..m-1]]
-    directions = (0,0) : [(dx,dy) | dx <- [-1..1], dy <- [-1..1], dx /= 0 || dy /= 0]
-    values = fromAscList $ zip (concat coords) (concat xss)
-    nb (x,y) (dx,dy) = fromMaybe d (values !? (x+dx,y+dy))
-    nbs xy = map (nb xy) directions
+    unmaybe = (map . map . map) (fromMaybe d)
+    (m, n) = (length zss, maybe 0 length (listToMaybe zss))
+    nbs x y = (x,y) : [(i,j) | i <- [x-1..x+1], j <- [y-1..y+1], (i,j) /= (x,y)]
+    vals = fromAscList [((i,j),z) | (i,zs) <- zip [0..] zss, (j,z) <- zip [0..] zs]
 
 annotate :: [String] -> [String]
 annotate = map (map go) . neighbors ' '
